@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>对话目录 · 本地 UI 验收</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root { color-scheme: light; --bg:#f7f8f5; --paper:#fff; --ink:#283b31; --muted:#819086; --line:#e4eae3; --tint:#eff3eb; }
+    :root[data-theme="dark"] { color-scheme:dark; --bg:#151a17; --paper:#1d2220; --ink:#dce6df; --muted:#94a297; --line:#303832; --tint:#242f27; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif; font-size:14px; line-height:1.85; }
+    button { font:inherit; cursor:pointer; }
+    .demo-rail { position:fixed; left:0; top:0; bottom:0; width:202px; padding:30px 20px; border-right:1px solid var(--line); display:flex; flex-direction:column; }
+    .brand { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:650; letter-spacing:-.4px; }
+    .brand-icon { display:grid; place-items:center; width:29px; height:29px; border:1px solid var(--line); border-radius:9px; background:var(--paper); }
+    .rail-label { font-size:10px; letter-spacing:1.8px; color:var(--muted); margin:55px 10px 14px; }
+    .rail-item { padding:10px 12px; margin:3px 0; border-radius:9px; font-size:12px; color:var(--muted); }
+    .rail-item.selected { background:var(--tint); color:var(--ink); font-weight:550; }
+    .rail-bottom { margin-top:auto; padding:16px 10px 0; border-top:1px solid var(--line); font-size:11px; color:var(--muted); }
+    .demo-shell { margin-left:202px; margin-right:354px; }
+    .demo-bar { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:24px 40px; border-bottom:1px solid var(--line); }
+    .demo-bar span { font-size:11px; color:var(--muted); }
+    .theme-control { display:flex; gap:3px; border:1px solid var(--line); border-radius:9px; padding:3px; }
+    .theme-control button { border:0; border-radius:6px; background:transparent; color:var(--muted); padding:4px 12px; font-size:11px; }
+    .theme-control button[aria-pressed="true"] { background:var(--paper); color:var(--ink); box-shadow:0 1px 4px #00000009; }
+    .intro { max-width:760px; margin:auto; padding:44px 48px 22px; }
+    .intro small { color:#70917a; letter-spacing:2px; font-size:10px; }
+    .intro h1 { font-size:30px; font-weight:550; letter-spacing:-1px; line-height:1.4; margin:13px 0 12px; }
+    .intro p { color:var(--muted); font-size:12px; line-height:1.9; margin:0; }
+    main { max-width:760px; margin:auto; padding:8px 48px 80px; }
+    [data-user-message-bubble] { margin:28px 0 26px auto; width:fit-content; max-width:90%; padding:14px 20px; border-radius:16px 16px 4px 16px; background:var(--tint); font-size:13px; }
+    .answer { background:var(--paper); border:1px solid var(--line); border-radius:18px; padding:27px 30px; margin-bottom:38px; }
+    .answer-label { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:10px; letter-spacing:1px; margin-bottom:25px; }
+    .answer-label::before { content:''; width:5px; height:5px; border-radius:50%; background:#7caa8b; }
+    main h2 { font-size:19px; line-height:1.5; margin:27px 0 12px; font-weight:600; scroll-margin-top:32px; }
+    main h2:first-child { margin-top:0; }
+    main h3 { font-size:14px; margin:24px 0 8px; font-weight:600; scroll-margin-top:32px; }
+    main p { margin:8px 0 16px; color:var(--muted); font-size:13px; }
+    .callout { background:var(--tint); border-left:2px solid #8caf94; padding:12px 16px; margin:20px 0; font-size:12px; border-radius:0 8px 8px 0; }
+    table { width:100%; border-collapse:collapse; margin:18px 0; font-size:11px; }
+    th,td { text-align:left; padding:11px 9px; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-weight:500; }
+    code { background:var(--tint); padding:2px 5px; border-radius:4px; font-size:12px; }
+    .preview-note { color:var(--muted); font-size:11px; padding-top:20px; border-top:1px solid var(--line); }
+    @media(max-width:1150px) { .demo-rail{width:155px;padding:25px 14px}.demo-shell{margin-left:155px}.intro,main{padding-left:28px;padding-right:28px}.demo-bar{padding:22px 28px}.intro h1{font-size:25px}.answer{padding:22px} }
+    @media(max-width:900px) { .demo-rail{display:none}.demo-shell{margin-left:0}.demo-bar{flex-wrap:wrap}.intro h1{font-size:22px} }
+    @media(max-width:650px) { .demo-shell{margin-right:0}.demo-bar{padding-right:24px}.intro,main{padding-left:24px;padding-right:24px} }
+  </style>
+</head>
+<body>
+  <aside class="demo-rail" aria-label="预览背景">
+    <div class="brand"><span class="brand-icon">≋</span> Outline</div>
+    <div class="rail-label">WORKSPACE</div>
+    <div class="rail-item">＋ 新的对话</div>
+    <div class="rail-label">最近的对话</div>
+    <div class="rail-item selected">循环队列 · 方法比较</div>
+    <div class="rail-item">递归与非递归</div>
+    <div class="rail-item">理解栈与队列</div>
+    <div class="rail-bottom">UI PREVIEW<br>界面预览 · 示例对话</div>
+  </aside>
+  <div class="demo-shell">
+    <header class="demo-bar"><span>学习笔记 / 数据结构</span><div class="theme-control" aria-label="预览主题"><button id="light-theme" aria-pressed="true">浅色</button><button id="dark-theme" aria-pressed="false">深色</button></div></header>
+    <section class="intro"><small>LESS SCROLLING, MORE READING</small><h1>长对话，也能一目了然。</h1><p>右侧是真实运行的新版目录。试试点击标题、折叠章节，或切换深浅色。<br>此页使用示例内容，可直接双击打开，无需安装扩展。</p></section>
+    <main>
+      <div data-user-message-bubble="true">循环队列的三种判空、判满方法，有什么区别？</div>
+      <section class="answer"><div class="answer-label">ASSISTANT / 01</div><div data-markdown-text-style="assistant-message">
+        <h2>三种方法，一张表看懂</h2><p>当队头与队尾重合时，需要额外的规则区分“空”和“满”。不同方法的主要差异，在于空间利用与状态维护。</p>
+        <table><thead><tr><th>方法</th><th>空间开销</th><th>特点</th></tr></thead><tbody><tr><td>牺牲一个单元</td><td>一个存储单元</td><td>实现简单</td></tr><tr><td>记录 size</td><td>一个整数</td><td>状态直观</td></tr><tr><td>设置 tag</td><td>一个标志</td><td>利用全部容量</td></tr></tbody></table>
+        <h2>01 · 牺牲一个存储单元</h2><p>预留一个位置，让队尾的下一个位置与队头重合时表示队满。这样，队头和队尾相等就只代表空队列。</p>
+        <h3>判断条件</h3><p>队空：<code>front == rear</code><br>队满：<code>(rear + 1) % maxSize == front</code></p>
+        <h3>适合什么时候使用</h3><p>当实现简单比容量利用更重要时，这个方法很方便。容量很大的队列中，一个位置的损失通常不明显。</p>
+        <h2>02 · 记录元素个数 size</h2><p>额外记录当前元素数量，每次入队加一、出队减一，判空和判满都可以直接比较数量。</p>
+        <h3>判断条件与维护</h3><p>元素数为零时为空，等于容量时为满。每次修改队列，都要同步维护计数。</p>
+        <h2>03 · 增加状态标志 tag</h2><p>当队头与队尾重合时，根据最近一次操作区分空与满。标志的含义需要保持统一，避免遗漏更新。</p>
+        <h2>怎样选择更合适</h2><div class="callout">优先看需求：实现复杂度、容量是否紧张，以及是否需要经常查询元素个数。</div><p>三种方法的常规入队、出队操作都能达到常数时间复杂度，不能仅凭多一条赋值就判断复杂度发生变化。</p>
+      </div></section>
+      <div data-user-message-bubble="true">如果容量固定且很小，应该重点考虑什么？</div>
+      <section class="answer"><div class="answer-label">ASSISTANT / 02</div><div data-markdown-text-style="assistant-message">
+        <h2>先看容量利用率</h2><p>对于只有少量单元的队列，预留一个单元所占的比例较大，可以考虑计数或标志位方案。</p>
+        <h2>再看维护成本</h2><p>如果需要随时读取当前队列长度，计数法更直接；如果只需要空满状态，标志位方案也可以满足需求。</p>
+      </div></section>
+      <div data-user-message-bubble="true">帮我用一句话记住。</div>
+      <section class="answer"><div class="answer-label">ASSISTANT / 03</div><div data-markdown-text-style="assistant-message"><p>预留位置最简单，记录数量最直观，维护标志可用满容量。</p></div></section>
+      <p class="preview-note">验收建议：检查长问题两行摘要、标题层级、点击高亮、章节折叠和深浅色切换。</p>
+    </main>
+  </div>
+  <script src="content.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('chatgpt-toc-toggle').click();
+      const first = document.querySelector('.toc-item');
+      if (first) { first.classList.add('toc-active'); first.setAttribute('aria-current', 'location'); }
+      for (const theme of ['light','dark']) {
+        document.getElementById(theme + '-theme').addEventListener('click', () => {
+          document.documentElement.dataset.theme = theme;
+          for (const option of ['light','dark']) document.getElementById(option + '-theme').setAttribute('aria-pressed', String(option === theme));
+        });
+      }
+    });
+  </script>
+</body>
+</html>

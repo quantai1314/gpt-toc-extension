@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Open test.html in Chrome to test the extension\"",
     "build": "echo \"Extension is ready to load in Chrome\"",
+    "build:preview": "node build-preview.cjs",
     "dev": "echo \"Load the extension in Chrome and navigate to test.html or ChatGPT\""
   },
   "keywords": [
@@ -20,12 +21,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/WindZZzzZZzz/gpt-toc-extension.git"
+    "url": "https://github.com/quantai1314/gpt-toc-extension.git"
   },
   "bugs": {
-    "url": "https://github.com/WindZZzzZZzz/gpt-toc-extension/issues"
+    "url": "https://github.com/quantai1314/gpt-toc-extension/issues"
   },
-  "homepage": "https://github.com/WindZZzzZZzz/gpt-toc-extension#readme",
+  "homepage": "https://github.com/quantai1314/gpt-toc-extension#readme",
   "engines": {
     "node": ">=14.0.0"
   },

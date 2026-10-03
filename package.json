@@ -1,10 +1,10 @@
 {
   "name": "chatgpt-toc-extension",
   "version": "1.0.0",
-  "description": "A Chrome extension that displays a table of contents for ChatGPT generated content in a right sidebar",
+  "description": "ChatGPT 对话目录：新版页面兼容、分层折叠、标题跳转与深浅色侧栏。",
   "main": "content.js",
   "scripts": {
-    "test": "echo \"Open test.html in Chrome to test the extension\"",
+    "test": "echo \"Serve this folder locally, then open tests/regression.html in Chrome; see README.md\"",
     "build": "echo \"Extension is ready to load in Chrome\"",
     "build:preview": "node build-preview.cjs",
     "dev": "echo \"Load the extension in Chrome and navigate to test.html or ChatGPT\""

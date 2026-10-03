@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChatGPT Table of Contents",
   "version": "1.0.1",
-  "description": "Display a table of contents for ChatGPT generated content in a right sidebar",
+  "description": "为 ChatGPT 长对话生成可折叠目录，支持标题跳转、动态更新与深浅色侧栏。",
   "permissions": [],
   "host_permissions": [
     "https://chat.openai.com/*",

@@ -79,6 +79,58 @@ document.addEventListener('DOMContentLoaded', async () => {
       await waitFor(() => headings().includes('<b>literal</b> & text'));
       assert(!document.querySelector('#toc-content img, #toc-content b'), 'Text interpreted as HTML');
     });
+    await check('Rendered Markdown formatting is preserved without copying links or handlers', async () => {
+      main.innerHTML = modern('<em>Rich prompt</em>', '<strong>Bold</strong> <em>italic</em> <code>size</code> <sup>2</sup> <a href="javascript:void(0)" onclick="void(0)">link text</a><img src="data:," onerror="void(0)"><button>Copy control</button>');
+      await waitFor(() => document.querySelector('.toc-text strong'));
+      assert(document.querySelector('.toc-group-prompt em'), 'Prompt format lost');
+      for (const tag of ['strong', 'em', 'code', 'sup']) assert(document.querySelector(`.toc-text ${tag}`), `Lost ${tag}`);
+      assert(document.querySelector('.toc-text').textContent.includes('link text'), 'Link text lost');
+      assert(!document.querySelector('.toc-text a, .toc-text img, .toc-text button, .toc-text [onclick], .toc-text [onerror]'), 'Unsafe elements copied');
+    });
+    const fraction = '<math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><msup><mi>x</mi><mn>2</mn></msup><mi>y</mi></mfrac></mrow><annotation encoding="application/x-tex">\\frac{x^2}{y}</annotation><annotation-xml encoding="text/html"><img src="data:," onerror="void(0)"></annotation-xml></semantics></math>';
+    await check('KaTeX formulas render once with fractions and powers, without TeX annotations', async () => {
+      main.innerHTML = modern('Math prompt', `Fraction <span data-math-source="formula"><span class="katex"><span class="katex-mathml">${fraction}</span><span class="katex-html" aria-hidden="true">DUPLICATE</span></span></span>`);
+      await waitFor(() => document.querySelector('.toc-text mfrac'));
+      assert(document.querySelectorAll('.toc-text math').length === 1, 'Formula duplicated');
+      assert(document.querySelector('.toc-text msup'), 'Power lost');
+      assert(!document.querySelector('.toc-text annotation, .toc-text annotation-xml, .toc-text img, .toc-text .katex-html'), 'Hidden math output copied');
+      assert(!document.querySelector('.toc-text').textContent.includes('DUPLICATE') && !document.querySelector('.toc-text').textContent.includes('\\frac'), 'Formula source leaked');
+      assert(document.querySelector('.toc-text math').namespaceURI === 'http://www.w3.org/1998/Math/MathML', 'MathML namespace lost');
+      let jumped = false;
+      main.querySelector('h2').scrollIntoView = () => { jumped = true; };
+      document.querySelector('.toc-text mi').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      assert(jumped, 'Clicking a formula does not navigate');
+    });
+    await check('Native MathML and MathJax assistive MathML preserve matrices and remove attributes', async () => {
+      main.innerHTML = modern('Native math', '<mjx-container><mjx-assistive-mml aria-hidden="true"><math><mtable columnalign="center" onclick="void(0)" style="color:red"><mtr><mtd><mi>a</mi></mtd><mtd><mi>b</mi></mtd></mtr></mtable></math></mjx-assistive-mml><span aria-hidden="true">Visual duplicate</span></mjx-container>');
+      await waitFor(() => document.querySelector('.toc-text mtable'));
+      const table = document.querySelector('.toc-text mtable');
+      assert(table.getAttribute('columnalign') === 'center', 'Matrix alignment lost');
+      assert(!table.hasAttribute('onclick') && !table.hasAttribute('style'), 'Unsafe math attributes copied');
+      assert(document.querySelector('.toc-text').textContent === 'ab', 'MathJax formula duplicated');
+    });
+    await check('Same-text formatting changes and late math rendering update the directory', async () => {
+      main.innerHTML = modern('Formatting', 'Same words');
+      await waitFor(() => headings().includes('Same words'));
+      main.querySelector('h2').innerHTML = '<strong>Same words</strong>';
+      await waitFor(() => document.querySelector('.toc-text strong'));
+      main.querySelector('h2').innerHTML = '<span data-math-source="x">x</span>';
+      await waitFor(() => headings().includes('x'));
+      main.querySelector('h2 span').innerHTML = '<span class="katex"><span class="katex-mathml"><math><mi>x</mi></math></span><span aria-hidden="true">x</span></span>';
+      await waitFor(() => document.querySelector('.toc-text math'));
+      main.querySelector('mi').setAttribute('mathvariant', 'normal');
+      await waitFor(() => document.querySelector('.toc-text mi')?.getAttribute('mathvariant') === 'normal');
+    });
+    await check('Prompt formulas stay complete and long formulas fit inside the sidebar', async () => {
+      main.innerHTML = modern('P'.repeat(198) + fraction + ' trailing text', `<math><mrow>${'<mi>x</mi><mo>+</mo>'.repeat(80)}<mn>1</mn></mrow></math>`);
+      await waitFor(() => document.querySelector('.toc-text math mo'));
+      assert(document.querySelector('.toc-group-prompt mfrac msup'), 'Prompt formula was cut');
+      assert(document.querySelector('.toc-group-prompt').textContent.endsWith('…'), 'Prompt length limit missing');
+      const wrapper = document.querySelector('.toc-text .toc-math');
+      assert(wrapper.scrollWidth > wrapper.clientWidth, 'Long formula has no horizontal scrolling');
+      const sidebar = document.getElementById('chatgpt-toc-sidebar');
+      assert(sidebar.scrollWidth <= sidebar.clientWidth + 1, 'Formula expands sidebar width');
+    });
     await check('Same-text DOM replacement refreshes navigation targets', async () => {
       main.innerHTML = modern('Navigation', 'Target');
       await waitFor(() => headings().includes('Target'));
@@ -117,7 +169,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       await waitFor(() => headings().includes('Late reply'));
     });
     await check('TOC mutations do not trigger an observer rendering loop', async () => {
-      await pause(350);
+      main.innerHTML = modern('Stable prompt', 'Stable heading');
+      await waitFor(() => headings().includes('Stable heading'));
       let writes = 0;
       const observer = new MutationObserver(() => writes++);
       observer.observe(document.getElementById('toc-content'), { childList: true, subtree: true });

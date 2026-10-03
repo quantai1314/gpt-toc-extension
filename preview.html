@@ -70,19 +70,20 @@
         <h2>01 · 牺牲一个存储单元</h2><p>预留一个位置，让队尾的下一个位置与队头重合时表示队满。这样，队头和队尾相等就只代表空队列。</p>
         <h3>判断条件</h3><p>队空：<code>front == rear</code><br>队满：<code>(rear + 1) % maxSize == front</code></p>
         <h3>适合什么时候使用</h3><p>当实现简单比容量利用更重要时，这个方法很方便。容量很大的队列中，一个位置的损失通常不明显。</p>
-        <h2>02 · 记录元素个数 size</h2><p>额外记录当前元素数量，每次入队加一、出队减一，判空和判满都可以直接比较数量。</p>
+        <h2>02 · 记录元素个数 <code>size</code></h2><p>额外记录当前元素数量，每次入队加一、出队减一，判空和判满都可以直接比较数量。</p>
         <h3>判断条件与维护</h3><p>元素数为零时为空，等于容量时为满。每次修改队列，都要同步维护计数。</p>
         <h2>03 · 增加状态标志 tag</h2><p>当队头与队尾重合时，根据最近一次操作区分空与满。标志的含义需要保持统一，避免遗漏更新。</p>
         <h2>怎样选择更合适</h2><div class="callout">优先看需求：实现复杂度、容量是否紧张，以及是否需要经常查询元素个数。</div><p>三种方法的常规入队、出队操作都能达到常数时间复杂度，不能仅凭多一条赋值就判断复杂度发生变化。</p>
       </div></section>
       <div data-user-message-bubble="true">如果容量固定且很小，应该重点考虑什么？</div>
       <section class="answer"><div class="answer-label">ASSISTANT / 02</div><div data-markdown-text-style="assistant-message">
-        <h2>先看容量利用率</h2><p>对于只有少量单元的队列，预留一个单元所占的比例较大，可以考虑计数或标志位方案。</p>
+        <h2>先看<strong>容量利用率</strong>：<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mi>n</mi></mfrac><mo>×</mo><mn>100</mn><mo>%</mo></mrow></math></h2><p>对于只有少量单元的队列，预留一个单元所占的比例较大，可以考虑计数或标志位方案。</p>
+        <h3>8 个单元：<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mfrac><mn>1</mn><mn>8</mn></mfrac><mo>=</mo><mn>12.5</mn><mo>%</mo></mrow></math> 的空间损失</h3><p>目录中的分数保留分子、分母与分数线，和正文一样显示为数学公式。</p>
         <h2>再看维护成本</h2><p>如果需要随时读取当前队列长度，计数法更直接；如果只需要空满状态，标志位方案也可以满足需求。</p>
       </div></section>
       <div data-user-message-bubble="true">帮我用一句话记住。</div>
       <section class="answer"><div class="answer-label">ASSISTANT / 03</div><div data-markdown-text-style="assistant-message"><p>预留位置最简单，记录数量最直观，维护标志可用满容量。</p></div></section>
-      <p class="preview-note">验收建议：检查长问题两行摘要、标题层级、点击高亮、章节折叠和深浅色切换。</p>
+      <p class="preview-note">验收建议：检查加粗、行内代码、分数公式、标题层级、点击高亮、章节折叠和深浅色切换。示例公式内置 MathML，无需联网。</p>
     </main>
   </div>
   <script src="content.js"></script>

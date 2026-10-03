@@ -40,6 +40,22 @@
 #chatgpt-toc-sidebar .toc-group-content { margin: 6px 0 0 10px; padding-left: 10px; border-left: 1px solid var(--toc-line); }
 #chatgpt-toc-sidebar .toc-item { position: relative; display: flex; align-items: center; gap: 4px; min-height: 34px; margin: 2px 0; padding: 7px 8px 7px calc(10px + var(--toc-depth, 0) * 13px); cursor: pointer; border-radius: 7px; color: var(--toc-text); line-height: 1.6; transition: background .15s, color .15s; }
 #chatgpt-toc-sidebar .toc-text { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
+#chatgpt-toc-sidebar .toc-text strong, #chatgpt-toc-sidebar .toc-group-prompt strong,
+#chatgpt-toc-sidebar .toc-text b, #chatgpt-toc-sidebar .toc-group-prompt b { font-weight: 650; }
+#chatgpt-toc-sidebar .toc-text em, #chatgpt-toc-sidebar .toc-group-prompt em,
+#chatgpt-toc-sidebar .toc-text i, #chatgpt-toc-sidebar .toc-group-prompt i { font-style: italic; }
+#chatgpt-toc-sidebar .toc-text code, #chatgpt-toc-sidebar .toc-group-prompt code {
+  font-family: 'Cascadia Code', Consolas, monospace; font-size: .95em;
+  background: var(--toc-hover); color: inherit; padding: 1px 4px; border-radius: 4px;
+}
+#chatgpt-toc-sidebar .toc-math {
+  display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden;
+  vertical-align: middle; padding: 3px 1px 5px; scrollbar-width: thin;
+  scrollbar-color: var(--toc-line) transparent;
+}
+#chatgpt-toc-sidebar .toc-math math { display: inline math; font-size: 1.08em; color: inherit; }
+/* Do not clip tall fractions or matrices with the two-line text clamp. */
+#chatgpt-toc-sidebar .toc-group-prompt:has(math) { display: block; }
 #chatgpt-toc-sidebar .toc-h3, #chatgpt-toc-sidebar .toc-h4, #chatgpt-toc-sidebar .toc-h5, #chatgpt-toc-sidebar .toc-h6 { color: var(--toc-muted); }
 #chatgpt-toc-sidebar .toc-item:hover { color: var(--toc-accent); background: var(--toc-soft); }
 #chatgpt-toc-sidebar .toc-item.toc-active { background: var(--toc-active-bg); color: var(--toc-accent); font-weight: 600; }

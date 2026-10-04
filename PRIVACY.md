@@ -1,6 +1,6 @@
 # ChatGPT Table of Contents 隐私政策 / Privacy Policy
 
-生效日期 / Effective date: 2026-10-03
+生效日期 / Effective date: 2026-10-04
 
 本政策适用于 quantai1314/gpt-toc-extension 维护的社区版本，与 OpenAI 无隶属关系。
 This policy applies to the community version maintained in quantai1314/gpt-toc-extension. It is not affiliated with OpenAI.
@@ -13,9 +13,9 @@ The extension reads already-loaded user prompts, assistant response text, and H1
 
 ## 保存与传输 / Retention and transfer
 
-所有目录处理均在用户浏览器内完成。目录、导航目标和折叠状态仅保存在页面运行内存中，关闭或重新加载页面后不保留。扩展不将消息、目录或设置写入持久化存储，不上传对话，不向开发者或第三方发送用户数据，不提供遥测、广告追踪或数据出售。开发者无法通过扩展读取用户聊天内容。
+所有目录处理均在用户浏览器内完成。目录、导航目标、阅读位置和折叠状态仅保存在页面运行内存中，关闭或重新加载页面后不保留。扩展通过 Chrome 的本地扩展存储仅保存手动设置的目录宽度（一个数字），点击“自动宽度”可删除该偏好；不保存消息或目录。独立本地预览在自身的 localStorage 中保存同一宽度偏好。扩展不上传对话，不向开发者或第三方发送用户数据，不提供遥测、广告追踪或数据出售。开发者无法通过扩展读取用户聊天内容。
 
-All processing takes place locally in the user's browser. Outline entries, navigation targets, and collapse state are held temporarily in page memory and are not retained after the page is closed or reloaded. The extension does not persist messages, outlines, or settings, upload conversations, transmit user data to the developer or third parties, provide telemetry or advertising tracking, or sell user data. The developer cannot read users' conversations through the extension.
+All processing takes place locally in the user's browser. Outline entries, navigation targets, reading position, and collapse state are held temporarily in page memory and are not retained after the page is closed or reloaded. Only the preferred sidebar width (one number) is saved in Chrome's local extension storage; choosing automatic width removes that preference. Messages and outlines are never persisted. The standalone local preview stores the same width preference in its own localStorage. The extension does not upload conversations, transmit user data to the developer or third parties, provide telemetry or advertising tracking, or sell user data. The developer cannot read users' conversations through the extension.
 
 ## 网站访问范围 / Website access
 

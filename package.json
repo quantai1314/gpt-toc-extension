@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-toc-extension",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "ChatGPT 对话目录：新版页面兼容、分层折叠、标题跳转与深浅色侧栏。",
   "main": "content.js",
   "scripts": {

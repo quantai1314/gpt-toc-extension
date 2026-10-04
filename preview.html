@@ -18,8 +18,8 @@
     .rail-item { padding:10px 12px; margin:3px 0; border-radius:9px; font-size:12px; color:var(--muted); }
     .rail-item.selected { background:var(--tint); color:var(--ink); font-weight:550; }
     .rail-bottom { margin-top:auto; padding:16px 10px 0; border-top:1px solid var(--line); font-size:11px; color:var(--muted); }
-    .demo-shell { margin-left:202px; margin-right:354px; }
-    .demo-bar { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:24px 40px; border-bottom:1px solid var(--line); }
+    .demo-shell { margin-left:202px; }
+    .demo-bar { display:flex; align-items:center; gap:24px; padding:24px 40px; border-bottom:1px solid var(--line); }
     .demo-bar span { font-size:11px; color:var(--muted); }
     .theme-control { display:flex; gap:3px; border:1px solid var(--line); border-radius:9px; padding:3px; }
     .theme-control button { border:0; border-radius:6px; background:transparent; color:var(--muted); padding:4px 12px; font-size:11px; }
@@ -61,7 +61,7 @@
   </aside>
   <div class="demo-shell">
     <header class="demo-bar"><span>学习笔记 / 数据结构</span><div class="theme-control" aria-label="预览主题"><button id="light-theme" aria-pressed="true">浅色</button><button id="dark-theme" aria-pressed="false">深色</button></div></header>
-    <section class="intro"><small>LESS SCROLLING, MORE READING</small><h1>长对话，也能一目了然。</h1><p>右侧是真实运行的新版目录。试试点击标题、折叠章节，或切换深浅色。<br>此页使用示例内容，可直接双击打开，无需安装扩展。</p></section>
+    <section class="intro"><small>LESS SCROLLING, MORE READING</small><h1>长对话，也能一目了然。</h1><p>右侧是真实运行的新版目录。试试拖动目录左边缘、滚动正文，或切换深浅色。<br>空间不足时目录会自动收起。此页使用示例内容，可直接双击打开，无需安装扩展。</p></section>
     <main>
       <div data-user-message-bubble="true">循环队列的三种判空、判满方法，有什么区别？</div>
       <section class="answer"><div class="answer-label">ASSISTANT / 01</div><div data-markdown-text-style="assistant-message">
@@ -83,15 +83,13 @@
       </div></section>
       <div data-user-message-bubble="true">帮我用一句话记住。</div>
       <section class="answer"><div class="answer-label">ASSISTANT / 03</div><div data-markdown-text-style="assistant-message"><p>预留位置最简单，记录数量最直观，维护标志可用满容量。</p></div></section>
-      <p class="preview-note">验收建议：检查加粗、行内代码、分数公式、标题层级、点击高亮、章节折叠和深浅色切换。示例公式内置 MathML，无需联网。</p>
+      <p class="preview-note">验收建议：检查加粗、行内代码、分数公式、标题层级、宽度调节、正文避让、阅读跟随、章节折叠和深浅色切换。示例公式内置 MathML，无需联网。</p>
     </main>
   </div>
   <script src="content.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('chatgpt-toc-toggle').click();
-      const first = document.querySelector('.toc-item');
-      if (first) { first.classList.add('toc-active'); first.setAttribute('aria-current', 'location'); }
       for (const theme of ['light','dark']) {
         document.getElementById(theme + '-theme').addEventListener('click', () => {
           document.documentElement.dataset.theme = theme;

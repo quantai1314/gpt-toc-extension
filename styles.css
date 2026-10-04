@@ -14,13 +14,16 @@
 #chatgpt-toc-sidebar, #chatgpt-toc-sidebar * { box-sizing: border-box; }
 #chatgpt-toc-sidebar {
   position: fixed; top: 16px; right: 16px; bottom: 16px;
-  width: 320px; max-width: calc(100vw - 32px);
+  width: 300px; max-width: calc(100vw - 32px);
   background: var(--toc-bg); border: 1px solid var(--toc-line); border-radius: 20px;
   box-shadow: 0 12px 48px #17261b0d, 0 2px 8px #17261b05;
   z-index: 9999; display: flex; flex-direction: column; overflow: hidden;
   transform: translateX(calc(100% + 32px)); transition: transform .24s ease;
 }
 #chatgpt-toc-sidebar .toc-header { display: flex; align-items: center; justify-content: space-between; padding: 25px 24px 16px; gap: 12px; }
+#chatgpt-toc-sidebar .toc-resize-handle { position: absolute; top: 20px; bottom: 20px; left: 0; width: 8px; cursor: ew-resize; touch-action: none; z-index: 1; }
+#chatgpt-toc-sidebar .toc-resize-handle:hover, #chatgpt-toc-sidebar .toc-resize-handle:focus-visible, #chatgpt-toc-sidebar.toc-resizing .toc-resize-handle { background: var(--toc-line); }
+#chatgpt-toc-sidebar.toc-resizing { user-select: none; }
 #chatgpt-toc-sidebar .toc-eyebrow { color: var(--toc-muted); font-size: 9px; font-weight: 600; letter-spacing: 1.55px; margin-bottom: 9px; }
 #chatgpt-toc-sidebar .toc-title { display: flex; align-items: center; gap: 9px; color: var(--toc-text); font-size: 20px; line-height: 1.4; font-weight: 650; letter-spacing: -.5px; margin: 0; }
 #chatgpt-toc-sidebar .toc-title-dot { width: 6px; height: 6px; background: var(--toc-accent); border-radius: 50%; }
@@ -58,17 +61,19 @@
 #chatgpt-toc-sidebar .toc-group-prompt:has(math) { display: block; }
 #chatgpt-toc-sidebar .toc-h3, #chatgpt-toc-sidebar .toc-h4, #chatgpt-toc-sidebar .toc-h5, #chatgpt-toc-sidebar .toc-h6 { color: var(--toc-muted); }
 #chatgpt-toc-sidebar .toc-item:hover { color: var(--toc-accent); background: var(--toc-soft); }
-#chatgpt-toc-sidebar .toc-item.toc-active { background: var(--toc-active-bg); color: var(--toc-accent); font-weight: 600; }
-#chatgpt-toc-sidebar .toc-item.toc-active::before { content: ''; position: absolute; left: -11px; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: var(--toc-accent); }
 #chatgpt-toc-sidebar .toc-group-separator { height: 1px; background: var(--toc-line); margin: 19px 10px 11px; }
 #chatgpt-toc-sidebar .toc-empty, #chatgpt-toc-sidebar .toc-loading { padding: 15px 10px; color: var(--toc-muted); font-size: 11px; line-height: 1.7; }
 #chatgpt-toc-sidebar .toc-footer { display: flex; align-items: center; gap: 7px; color: var(--toc-muted); font-size: 10px; padding: 16px 24px; border-top: 1px solid var(--toc-line); }
 #chatgpt-toc-sidebar .toc-status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--toc-accent); opacity: .65; }
 #chatgpt-toc-sidebar .toc-footer-mark { margin-left: auto; font-size: 9px; letter-spacing: 1px; }
+#chatgpt-toc-sidebar .toc-width-reset { margin-left: auto; border: 0; padding: 4px; background: transparent; color: var(--toc-accent); font: inherit; white-space: nowrap; cursor: pointer; }
+#chatgpt-toc-sidebar .toc-width-reset:disabled { color: var(--toc-muted); cursor: default; }
 #chatgpt-toc-sidebar :focus-visible, #chatgpt-toc-toggle:focus-visible { outline: 2px solid var(--toc-accent); outline-offset: 2px; }
 #chatgpt-toc-toggle { position: fixed; top: 80px; right: 20px; z-index: 10000; display: flex; align-items: center; gap: 8px; background: var(--toc-bg); border: 1px solid var(--toc-line); border-radius: 12px; box-shadow: 0 4px 18px #17261b0d; padding: 10px 15px; cursor: pointer; }
 #chatgpt-toc-toggle:hover { background: var(--toc-hover); }
+#chatgpt-toc-toggle.toc-compact { right: 8px; width: 28px; height: 32px; padding: 5px; border-radius: 8px; justify-content: center; }
+#chatgpt-toc-toggle.toc-compact span { display: none; }
 @media (max-width: 600px) {
-  #chatgpt-toc-sidebar { top: 8px; right: 8px; bottom: 8px; width: min(320px, calc(100vw - 16px)); max-width: calc(100vw - 16px); border-radius: 16px; }
+  #chatgpt-toc-sidebar { top: 8px; right: 8px; bottom: 8px; max-width: calc(100vw - 16px); border-radius: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { #chatgpt-toc-sidebar, #chatgpt-toc-sidebar * { transition: none; } }

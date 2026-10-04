@@ -12,17 +12,18 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p><strong>Effective date:</strong> 3rd October, 2026</p>
+  <p><strong>Effective date:</strong> 4th October, 2026</p>
   <p>This Chrome extension, <strong>ChatGPT TOC Extension</strong>, respects your privacy. This policy explains what information is (and is not) collected and how it is used.</p>
   <h2>Information Collection and Use</h2>
   <ul>
     <li>The extension reads already-loaded ChatGPT messages and headings to generate an outline, display question previews, and navigate to content. Processing takes place only in your browser.</li>
-    <li>Outline entries, navigation targets, and collapse state are held temporarily in page memory. The extension does not persist chat content or settings in local storage or Chrome storage.</li>
+    <li>Outline entries, navigation targets, reading position, and collapse state are held temporarily in page memory. Only the preferred sidebar width (one number) is saved in Chrome's local extension storage. Choosing automatic width removes that preference. The standalone local preview stores the same width preference in its own localStorage. Chat content and outlines are never persisted.</li>
     <li>The extension does not upload chat content, collect analytics, track browsing history, sell user data, or use data for advertising.</li>
     <li>No information is sent to any external servers or third parties.</li>
     <li>All processing is done locally in your browser.</li>
   </ul>
   <h2>Permissions</h2>
+  <p>The storage permission is used only to remember the preferred sidebar width on this device.</p>
   <p>The extension runs only on https://chatgpt.com/* and https://chat.openai.com/*. Access to these pages is used to read visible conversation content, inject the outline, detect the page theme, and scroll to selected headings. The extension does not access other websites, cookies, credentials, or background conversation APIs.</p>
   <p>All extension scripts and styles are included in the installed package. The extension does not load remote executable code. This policy applies to this community-maintained extension; ChatGPT and linked websites have their own privacy policies.</p>
   <h2>Changes to This Policy</h2>

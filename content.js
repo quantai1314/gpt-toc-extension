@@ -11,7 +11,16 @@ class ChatGPTTOC {
     this.downArrowSVG = '<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle"><polyline points="3,4 6,8 9,4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     this.isDarkMode = false;
     this.lastPath = location.pathname;
+    this.conversationRoot = null;
     this.lastTOCSignature = null;
+    this.preferredWidth = null;
+    this.maxSidebarWidth = 420;
+    this.openRequested = false;
+    this.followPaused = false;
+    this.framePending = false;
+    this.layoutPending = false;
+    this.contentRoots = [];
+    this.widthStorageKey = 'chatgptTocWidth';
     this.init();
   }
 
@@ -29,16 +38,21 @@ class ChatGPTTOC {
     
     // Start observing for theme changes
     this.observeThemeChanges();
+    this.observeReadingPosition();
+    this.loadWidthPreference();
   }
 
   createSidebar() {
     // Create sidebar container
     this.sidebar = document.createElement('div');
     this.sidebar.id = 'chatgpt-toc-sidebar';
-    this.sidebar.setAttribute('role', 'dialog');
+    this.sidebar.setAttribute('role', 'complementary');
     this.sidebar.setAttribute('aria-labelledby', 'toc-title');
     this.sidebar.setAttribute('aria-describedby', 'toc-content');
+    this.sidebar.setAttribute('aria-hidden', 'true');
+    this.sidebar.inert = true;
     this.sidebar.innerHTML = `
+      <div class="toc-resize-handle" role="separator" aria-label="调整目录宽度" aria-orientation="vertical" tabindex="0"></div>
       <div class="toc-header">
         <div class="toc-heading-block">
           <div class="toc-eyebrow">CONVERSATION OUTLINE</div>
@@ -50,10 +64,11 @@ class ChatGPTTOC {
       <div class="toc-content" id="toc-content" role="region" aria-label="Table of contents navigation">
         <div class="toc-loading">Loading...</div>
       </div>
-      <div class="toc-footer"><span class="toc-status-dot"></span> 点击标题，回到上下文 <span class="toc-footer-mark">TOC</span></div>
+      <div class="toc-footer"><span class="toc-status-dot"></span> <span>随正文跟随</span><button class="toc-width-reset" type="button" title="恢复自动宽度">自动宽度</button></div>
     `;
     
     document.body.appendChild(this.sidebar);
+    this.setupWidthControls();
     
     // Initialize theme
     this.updateTheme();
@@ -140,36 +155,253 @@ class ChatGPTTOC {
   }
 
   toggleSidebar() {
-    this.isVisible = !this.isVisible;
-    this.sidebar.style.transform = this.isVisible ? 'translateX(0)' : 'translateX(calc(100% + 32px))';
-    
-    // Update accessibility attributes
+    this.openRequested = !this.openRequested;
+    if (this.openRequested) {
+      this.followPaused = false;
+      this.extractHeadings();
+    }
+    this.updateLayout();
+    this.syncReadingPosition();
+    if (this.isVisible) document.getElementById('toc-close').focus();
+  }
+
+  setSidebarVisible(visible) {
+    this.isVisible = visible;
+    this.sidebar.style.transform = visible ? 'translateX(0)' : 'translateX(calc(100% + 32px))';
+    this.sidebar.inert = !visible;
+    this.sidebar.setAttribute('aria-hidden', String(!visible));
     const toggleButton = document.getElementById('chatgpt-toc-toggle');
     if (toggleButton) {
-      toggleButton.setAttribute('aria-expanded', this.isVisible.toString());
-      // Show/hide the button based on sidebar visibility
-      toggleButton.style.display = this.isVisible ? 'none' : '';
-    }
-    
-    // Focus management for accessibility
-    if (this.isVisible) {
-      this.extractHeadings();
-      // Focus the close button when opening
-      const closeButton = document.getElementById('toc-close');
-      if (closeButton) {
-        closeButton.focus();
-      }
+      toggleButton.setAttribute('aria-expanded', String(visible));
+      toggleButton.style.display = visible ? 'none' : '';
     }
   }
 
+  // Preferences use extension storage. Standalone local previews use their own origin.
+  previewStorageAvailable() {
+    return location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+  }
+
+  async loadWidthPreference() {
+    try {
+      const stored = globalThis.chrome?.storage?.local
+        ? (await chrome.storage.local.get(this.widthStorageKey))[this.widthStorageKey]
+        : this.previewStorageAvailable() ? JSON.parse(localStorage.getItem(this.widthStorageKey)) : null;
+      if (typeof stored === 'number' && Number.isFinite(stored)) {
+        this.preferredWidth = Math.max(220, Math.min(420, stored));
+      }
+    } catch (_) { /* Storage may be disabled; sizing still works for this page. */ }
+    this.scheduleReadingUpdate(true);
+  }
+
+  async saveWidthPreference() {
+    try {
+      if (globalThis.chrome?.storage?.local) {
+        if (this.preferredWidth === null) await chrome.storage.local.remove(this.widthStorageKey);
+        else await chrome.storage.local.set({ [this.widthStorageKey]: this.preferredWidth });
+      } else if (this.previewStorageAvailable()) {
+        if (this.preferredWidth === null) localStorage.removeItem(this.widthStorageKey);
+        else localStorage.setItem(this.widthStorageKey, JSON.stringify(this.preferredWidth));
+      }
+    } catch (_) { /* Do not interrupt navigation if preferences cannot be saved. */ }
+  }
+
+  setupWidthControls() {
+    const handle = this.sidebar.querySelector('.toc-resize-handle');
+    let drag = null;
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      drag = { x: event.clientX, width: this.sidebar.getBoundingClientRect().width };
+      handle.setPointerCapture(event.pointerId);
+      this.sidebar.classList.add('toc-resizing');
+    });
+    handle.addEventListener('pointermove', event => {
+      if (!drag) return;
+      this.preferredWidth = Math.max(220, Math.min(this.maxSidebarWidth, drag.width + drag.x - event.clientX));
+      this.updateLayout();
+    });
+    const finishDrag = () => {
+      if (!drag) return;
+      drag = null;
+      this.sidebar.classList.remove('toc-resizing');
+      this.saveWidthPreference();
+    };
+    handle.addEventListener('pointerup', finishDrag);
+    handle.addEventListener('pointercancel', finishDrag);
+    handle.addEventListener('lostpointercapture', finishDrag);
+    handle.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+      event.preventDefault();
+      this.preferredWidth = event.key === 'Home' ? null : Math.max(220, Math.min(this.maxSidebarWidth,
+        this.sidebar.getBoundingClientRect().width + (event.key === 'ArrowLeft' ? 20 : -20)));
+      this.updateLayout();
+      this.saveWidthPreference();
+    });
+    this.sidebar.querySelector('.toc-width-reset').addEventListener('click', () => {
+      this.preferredWidth = null;
+      this.updateLayout();
+      this.saveWidthPreference();
+    });
+  }
+
+  refreshLayoutTargets() {
+    const main = this.conversationRoot;
+    const roots = new Set(main ? main.querySelectorAll(
+      '[data-markdown-text-style="assistant-message"], [data-message-author-role="assistant"] .markdown, [data-user-message-bubble]'
+    ) : []);
+    for (const group of this.responseGroups) {
+      if (![...roots].some(root => group.messageElement.contains(root))) roots.add(group.messageElement);
+      if (group.promptElement && !group.promptElement.querySelector('[data-user-message-bubble]')) roots.add(group.promptElement);
+    }
+    this.contentRoots = [...roots];
+    this.widthObserver?.disconnect();
+    if (main) this.widthObserver?.observe(main);
+    for (const root of this.contentRoots) this.widthObserver?.observe(root);
+    this.scheduleReadingUpdate(true);
+  }
+
+  updateLayout() {
+    const viewportWidth = document.documentElement.clientWidth;
+    const edge = viewportWidth <= 600 ? 8 : 16;
+    let right = 0;
+    for (const root of this.contentRoots) {
+      // Include wide code, tables, images and formulas, but respect clipping containers.
+      for (const element of [root, ...root.querySelectorAll('pre, table, math, img, svg, canvas, code')]) {
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) continue;
+        let boundary = rect.right;
+        for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+          if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(parent).overflowX)) {
+            boundary = Math.min(boundary, parent.getBoundingClientRect().right);
+          }
+        }
+        right = Math.max(right, boundary);
+      }
+    }
+    this.maxSidebarWidth = Math.max(0, Math.min(420, Math.floor(viewportWidth - right - edge - 16)));
+    const width = Math.min(this.preferredWidth ?? 300, this.maxSidebarWidth);
+    this.sidebar.style.width = `${Math.max(0, width)}px`;
+    const handle = this.sidebar.querySelector('.toc-resize-handle');
+    handle.setAttribute('aria-valuemin', '220');
+    handle.setAttribute('aria-valuemax', String(this.maxSidebarWidth));
+    handle.setAttribute('aria-valuenow', String(Math.round(width)));
+    const reset = this.sidebar.querySelector('.toc-width-reset');
+    reset.disabled = this.preferredWidth === null;
+    const wasVisible = this.isVisible;
+    this.setSidebarVisible(this.openRequested && width >= 220);
+    const toggle = document.getElementById('chatgpt-toc-toggle');
+    if (toggle) {
+      const cramped = this.maxSidebarWidth < 220;
+      toggle.classList.toggle('toc-compact', cramped);
+      toggle.title = cramped ? '右侧空间不足，目录已收起；扩大窗口或缩小页面后可展开' : '打开目录';
+      // Keep the compact entry near the page header rather than over the answer.
+      toggle.style.top = cramped ? '8px' : '80px';
+      if (wasVisible && !this.isVisible && this.sidebar.contains(document.activeElement)) toggle.focus({ preventScroll: true });
+    }
+  }
+
+  scheduleReadingUpdate(layout = false) {
+    this.layoutPending ||= layout;
+    if (this.framePending) return;
+    this.framePending = true;
+    requestAnimationFrame(() => {
+      this.framePending = false;
+      if (this.layoutPending) {
+        this.layoutPending = false;
+        this.updateLayout();
+      }
+      this.syncReadingPosition();
+    });
+  }
+
+  observeReadingPosition() {
+    const content = document.getElementById('toc-content');
+    const pauseFollowing = () => { this.followPaused = true; };
+    content.addEventListener('wheel', pauseFollowing, { passive: true });
+    content.addEventListener('pointerdown', pauseFollowing);
+    content.addEventListener('keydown', event => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) pauseFollowing();
+    });
+    // Scroll does not bubble; capture also covers ChatGPT's nested scroll container.
+    document.addEventListener('scroll', event => {
+      if (event.target instanceof Element && event.target.closest('#chatgpt-toc-sidebar')) return;
+      if (event.target !== document && event.target !== document.scrollingElement &&
+          !this.contentRoots.some(root => event.target instanceof Element && event.target.contains(root))) return;
+      this.followPaused = false;
+      this.scheduleReadingUpdate();
+    }, { capture: true, passive: true });
+    window.addEventListener('resize', () => this.scheduleReadingUpdate(true));
+    window.visualViewport?.addEventListener('resize', () => this.scheduleReadingUpdate(true));
+    this.widthObserver = new ResizeObserver(() => this.scheduleReadingUpdate(true));
+    this.refreshLayoutTargets();
+  }
+
+  syncReadingPosition() {
+    if (!this.isVisible || this.followPaused || !this.responseGroups.length) return;
+    let readingTop = 80;
+    const firstMessage = this.responseGroups[0].messageElement;
+    for (let parent = firstMessage.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY) && parent.scrollHeight > parent.clientHeight) {
+        readingTop = Math.max(80, parent.getBoundingClientRect().top + 48);
+        break;
+      }
+    }
+    let current = null;
+    let nearest = null;
+    for (let groupIndex = 0; groupIndex < this.responseGroups.length; groupIndex++) {
+      const group = this.responseGroups[groupIndex];
+      const targets = [{ element: group.promptElement || group.messageElement, headingIndex: null },
+        ...group.headings.map((element, headingIndex) => ({ element, headingIndex }))];
+      for (const target of targets) {
+        const rect = target.element.getBoundingClientRect();
+        if (!rect.height) continue;
+        const entry = { groupIndex, headingIndex: target.headingIndex, top: rect.top };
+        if (rect.top <= readingTop && (!current || rect.top >= current.top)) current = entry;
+        if (rect.top > readingTop && (!nearest || rect.top < nearest.top)) nearest = entry;
+      }
+    }
+    const entry = current || nearest;
+    if (!entry) return;
+    let item = entry.headingIndex === null
+      ? this.sidebar.querySelector(`.toc-group-header[data-group="${entry.groupIndex}"]`)
+      : this.sidebar.querySelector(`.toc-item[data-group="${entry.groupIndex}"][data-heading="${entry.headingIndex}"]`);
+    // Follow the nearest visible ancestor without reopening a user's folded branches.
+    while (item && !item.getClientRects().length) {
+      const children = item.closest('.toc-children');
+      item = children ? children.previousElementSibling : this.sidebar.querySelector(`.toc-group-header[data-group="${entry.groupIndex}"]`);
+    }
+    if (!item) return;
+    const content = document.getElementById('toc-content');
+    const bounds = content.getBoundingClientRect();
+    const rect = item.getBoundingClientRect();
+    if (rect.top < bounds.top + 12 || rect.bottom > bounds.bottom - 12) {
+      // Scroll only the directory, never an ancestor or the conversation.
+      content.scrollTop += rect.top - bounds.top - Math.max(12, (bounds.height - rect.height) / 2);
+    }
+  }
+
+  findConversationRoot() {
+    // ChatGPT caches inactive workspaces in the DOM behind display:none ancestors.
+    // Prefer the latest rendered main, including an empty one while a new chat loads.
+    return Array.from(document.querySelectorAll('main')).reverse().find(main =>
+      !main.closest('[hidden], [aria-hidden="true"], [inert]') &&
+      main.getClientRects().length > 0 &&
+      !['hidden', 'collapse'].includes(getComputedStyle(main).visibility)
+    ) || null;
+  }
+
   extractHeadings() {
-    if (this.lastPath !== location.pathname) {
+    const root = this.findConversationRoot();
+    if (this.lastPath !== location.pathname || this.conversationRoot !== root) {
       this.lastPath = location.pathname;
+      this.conversationRoot = root;
       this.collapsedGroups.clear();
       this.collapsedHeadings.clear();
       this.lastTOCSignature = null;
+      this.followPaused = false;
+      document.getElementById('toc-content').scrollTop = 0;
     }
-    const root = document.querySelector('main');
     // Keep legacy support, but also recognize the current ChatGPT markup.
     // Do not collect generic .markdown elements: user messages can contain them too.
     const candidates = root ? Array.from(root.querySelectorAll(
@@ -223,6 +455,7 @@ class ChatGPTTOC {
     this.responseGroups = groups;
     // Flatten all headings for backward compatibility
     this.headings = this.responseGroups.flatMap(group => group.headings);
+    this.refreshLayoutTargets();
     if (sameTargets && signature === this.lastTOCSignature) return;
     this.lastTOCSignature = signature;
     this.updateTOC();
@@ -302,6 +535,7 @@ class ChatGPTTOC {
 
   updateTOC() {
     const tocContent = document.getElementById('toc-content');
+    const previousScrollTop = tocContent.scrollTop;
     document.getElementById('toc-summary').textContent = `${this.responseGroups.length} 段回答 · ${this.headings.length} 个标题`;
     if (this.responseGroups.length === 0) {
       tocContent.innerHTML = '<div class="toc-empty">No responses found</div>';
@@ -326,6 +560,8 @@ class ChatGPTTOC {
       }
     });
     tocContent.innerHTML = tocHTML;
+    tocContent.scrollTop = previousScrollTop;
+    this.scheduleReadingUpdate();
     // Group header click toggles collapse and scrolls to response
     const groupHeaders = tocContent.querySelectorAll('.toc-group-header-clickable');
     groupHeaders.forEach((header) => {
@@ -408,12 +644,6 @@ class ChatGPTTOC {
         behavior: 'smooth',
         block: 'start'
       });
-      // Optionally highlight the message
-      message.style.backgroundColor = '#e3f2fd';
-      message.style.transition = 'background-color 0.3s ease';
-      setTimeout(() => {
-        message.style.backgroundColor = '';
-      }, 2000);
     }
   }
 
@@ -438,12 +668,6 @@ class ChatGPTTOC {
 
   scrollToHeading(groupIndex, headingIndex) {
     if (this.responseGroups[groupIndex] && this.responseGroups[groupIndex].headings[headingIndex]) {
-      this.sidebar.querySelectorAll('.toc-item').forEach(item => {
-        const selected = item.dataset.group === String(groupIndex) && item.dataset.heading === String(headingIndex);
-        item.classList.toggle('toc-active', selected);
-        if (selected) item.setAttribute('aria-current', 'location');
-        else item.removeAttribute('aria-current');
-      });
       const heading = this.responseGroups[groupIndex].headings[headingIndex];
       
       // Smooth scroll to the heading
@@ -452,13 +676,6 @@ class ChatGPTTOC {
         block: 'start'
       });
       
-      // Highlight the heading briefly
-      heading.style.backgroundColor = '#ffeb3b';
-      heading.style.transition = 'background-color 0.3s ease';
-      
-      setTimeout(() => {
-        heading.style.backgroundColor = '';
-      }, 2000);
     }
   }
 
@@ -484,7 +701,7 @@ class ChatGPTTOC {
       attributes: true,
       attributeFilter: ['data-message-author-role', 'data-markdown-text-style',
         'data-user-message-bubble', 'data-chatgpt-selection-message-id', 'hidden', 'aria-hidden',
-        'class', 'data-math-source', 'mathvariant', 'displaystyle']
+        'class', 'style', 'data-math-source', 'mathvariant', 'displaystyle']
     });
     // SPA navigation can change the URL without changing the rendered text.
     setInterval(() => {

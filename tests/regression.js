@@ -179,6 +179,170 @@ document.addEventListener('DOMContentLoaded', async () => {
       observer.disconnect();
       assert(writes === 0, `Unnecessary TOC renders: ${writes}`);
     });
+    const cachedWorkspace = document.createElement('div');
+    cachedWorkspace.style.display = 'none';
+    cachedWorkspace.innerHTML = `<main style="width:2000px">${modern('Cached prompt', 'Cached old heading')}</main>`;
+    const nextWorkspace = document.createElement('div');
+    nextWorkspace.style.display = 'none';
+    nextWorkspace.innerHTML = `<main>${modern('Next prompt', 'Next chat heading')}</main>`;
+    const nextMain = nextWorkspace.querySelector('main');
+    main.before(cachedWorkspace);
+    main.after(nextWorkspace);
+    await check('Inactive cached main before the active chat is excluded', async () => {
+      main.innerHTML = modern('Active prompt', 'Active chat heading');
+      await waitFor(() => headings().includes('Active chat heading'));
+      assert(headings().join() === 'Active chat heading', 'Read a cached hidden workspace');
+    });
+    await check('URL-first chat switch waits for the visible workspace and keeps width preference', async () => {
+      const panel = document.getElementById('chatgpt-toc-sidebar');
+      panel.querySelector('.toc-width-reset').click();
+      panel.querySelector('.toc-resize-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+      panel.querySelector('.toc-group-collapse-icon').click();
+      history.pushState({}, '', 'regression-next-chat');
+      // The new URL arrives before ChatGPT finishes changing workspace visibility.
+      await pause(1100);
+      main.style.display = 'none';
+      nextWorkspace.style.display = 'block';
+      await waitFor(() => headings().join() === 'Next chat heading');
+      assert(panel.querySelector('.toc-group-content').style.display === 'block', 'Old collapse state leaked into new chat');
+      assert(Math.round(panel.getBoundingClientRect().width) === 320, 'Chat switch lost preferred width');
+    });
+    await check('Cached workspace switch updates even without a URL or message mutation', async () => {
+      nextWorkspace.style.display = 'none';
+      main.style.display = '';
+      await waitFor(() => headings().join() === 'Active chat heading');
+      assert(!headings().includes('Next chat heading'), 'Previous chat entries remained');
+    });
+    await check('Empty active workspace clears old entries then indexes asynchronously loaded replies', async () => {
+      nextMain.replaceChildren();
+      main.style.display = 'none';
+      nextWorkspace.style.display = 'block';
+      history.pushState({}, '', 'regression-empty-chat');
+      await waitFor(() => document.querySelector('.toc-empty')?.textContent === 'No responses found');
+      assert(headings().length === 0, 'Kept hidden old headings while new chat was empty');
+      nextMain.innerHTML = modern('Loaded prompt', 'Asynchronously loaded heading');
+      await waitFor(() => headings().join() === 'Asynchronously loaded heading');
+      nextWorkspace.remove();
+      cachedWorkspace.remove();
+      main.style.display = '';
+      history.replaceState({}, '', 'regression.html');
+      await waitFor(() => headings().join() === 'Active chat heading');
+      document.querySelector('.toc-width-reset').click();
+    });
+    const sidebar = document.getElementById('chatgpt-toc-sidebar');
+    const toggle = document.getElementById('chatgpt-toc-toggle');
+    const content = document.getElementById('toc-content');
+    const handle = sidebar.querySelector('.toc-resize-handle');
+    const isOpen = () => sidebar.getAttribute('aria-hidden') === 'false';
+    await check('Adaptive width leaves space beside the actual answer', async () => {
+      await waitFor(isOpen);
+      sidebar.querySelector('.toc-width-reset').click();
+      await pause(60);
+      const answer = main.querySelector('[data-markdown-text-style]');
+      assert(sidebar.getBoundingClientRect().left >= answer.getBoundingClientRect().right + 15, 'Sidebar overlaps answer');
+      assert(Math.round(sidebar.getBoundingClientRect().width) === 300, 'Automatic width is not 300px');
+    });
+    await check('Keyboard resizing remembers width and reset removes the preference', async () => {
+      handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+      assert(Math.round(sidebar.getBoundingClientRect().width) === 320, 'Resize did not widen sidebar');
+      assert(JSON.parse(localStorage.getItem('chatgptTocWidth')) === 320, 'Width not saved');
+      sidebar.querySelector('.toc-width-reset').click();
+      assert(localStorage.getItem('chatgptTocWidth') === null, 'Reset did not remove saved width');
+    });
+    await check('Insufficient space closes safely and restores requested width when space returns', async () => {
+      handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+      const oldWidth = main.style.width;
+      main.style.width = `${document.documentElement.clientWidth - 120}px`;
+      await waitFor(() => !isOpen());
+      assert(sidebar.inert, 'Closed sidebar still receives keyboard focus');
+      assert(toggle.classList.contains('toc-compact'), 'Missing compact entry');
+      main.style.width = oldWidth;
+      await waitFor(isOpen);
+      assert(Math.round(sidebar.getBoundingClientRect().width) === 320, 'Preferred width was lost');
+      sidebar.querySelector('.toc-width-reset').click();
+    });
+    await check('Wide visible tables are avoided and clipped code does not consume extra space', async () => {
+      const answer = main.querySelector('[data-markdown-text-style]');
+      const oldWidth = main.style.width;
+      main.style.width = '240px';
+      const safeWidth = Math.min(700, document.documentElement.clientWidth - 430);
+      answer.insertAdjacentHTML('beforeend', `<table style="width:${safeWidth}px"><tr><td>Wide table</td></tr></table><div style="width:240px;overflow-x:auto"><pre style="width:2000px">Long code</pre></div>`);
+      await pause(350);
+      await waitFor(isOpen);
+      assert(sidebar.getBoundingClientRect().left >= answer.querySelector('table').getBoundingClientRect().right + 15, 'Visible table overlaps sidebar');
+      answer.querySelector('table').remove();
+      await pause(350);
+      assert(isOpen(), 'Clipped code incorrectly hides the sidebar');
+      answer.lastElementChild.remove();
+      main.style.width = oldWidth;
+    });
+    await check('Clicks navigate without directory or body highlighting', async () => {
+      const target = main.querySelector('h2');
+      let jumped = false;
+      target.scrollIntoView = () => { jumped = true; };
+      document.querySelector('.toc-item').click();
+      assert(jumped, 'Heading click failed');
+      assert(!sidebar.querySelector('.toc-active, [aria-current]'), 'Directory highlight remains');
+      assert(target.style.backgroundColor === '', 'Body highlight remains');
+      document.querySelector('.toc-group-header').click();
+      assert(main.querySelector('[data-markdown-text-style]').style.backgroundColor === '', 'Response highlight remains');
+    });
+    const alignHeading = index => {
+      const target = main.querySelectorAll('h2')[index];
+      main.scrollTop += target.getBoundingClientRect().top - main.getBoundingClientRect().top - 48;
+    };
+    const directoryItemVisible = index => {
+      const rect = sidebar.querySelector(`.toc-item[data-heading="${index}"]`).getBoundingClientRect();
+      const bounds = content.getBoundingClientRect();
+      return rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+    };
+    await check('Directory follows a nested conversation scroll down and up without moving the body', async () => {
+      main.style.height = '360px';
+      main.style.overflowY = 'auto';
+      main.innerHTML = `<div data-markdown-text-style="assistant-message">${Array.from({ length: 60 }, (_, i) => `<section style="height:260px"><h2>Reading section ${i}</h2><p>Body ${i}</p></section>`).join('')}</div>`;
+      await waitFor(() => headings().length === 60);
+      alignHeading(55);
+      const bodyPosition = main.scrollTop;
+      await waitFor(() => directoryItemVisible(55));
+      assert(content.scrollTop > 0, 'Directory did not follow downward');
+      assert(main.scrollTop === bodyPosition, 'Following moved the conversation');
+      main.scrollTop = 0;
+      await waitFor(() => directoryItemVisible(0));
+      assert(!sidebar.querySelector('.toc-active, [aria-current]'), 'Following adds highlighting');
+    });
+    await check('Manual directory browsing pauses following until conversation scroll resumes', async () => {
+      alignHeading(55);
+      await waitFor(() => directoryItemVisible(55));
+      content.dispatchEvent(new WheelEvent('wheel', { deltaY: -500, bubbles: true }));
+      content.scrollTop = 0;
+      main.querySelector('p').textContent = 'Updated body while browsing outline';
+      await pause(350);
+      assert(content.scrollTop === 0, 'Automatic following interrupted manual browsing');
+      main.scrollTop += 15;
+      await waitFor(() => directoryItemVisible(55));
+    });
+    await check('Following a folded response preserves the user collapse choice', async () => {
+      sidebar.querySelector('.toc-group-collapse-icon').click();
+      main.scrollTop -= 20;
+      await pause(100);
+      assert(sidebar.querySelector('.toc-group-content').style.display === 'none', 'Following reopened a folded response');
+      sidebar.querySelector('.toc-group-collapse-icon').click();
+    });
+    await check('Streaming outline rebuild preserves manual directory scroll', async () => {
+      content.dispatchEvent(new WheelEvent('wheel', { deltaY: 1, bubbles: true }));
+      content.scrollTop = 180;
+      main.querySelector('h2').textContent = 'Updated reading section';
+      await waitFor(() => headings().includes('Updated reading section'));
+      assert(content.scrollTop === 180, 'Streaming reset manual directory position');
+    });
+    await check('Explicit close stays closed after layout changes', async () => {
+      document.getElementById('toc-close').click();
+      main.style.width = '500px';
+      await pause(100);
+      assert(!isOpen(), 'Layout change reopened explicitly closed sidebar');
+      toggle.click();
+      await waitFor(isOpen);
+    });
     results.textContent += `\n\n${passed.length} tests passed.`;
     document.title = `PASS: ${passed.length} TOC regression tests`;
   } catch (error) {

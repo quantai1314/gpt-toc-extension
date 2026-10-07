@@ -155,7 +155,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ## Chrome 与 Edge 商店发布
 
-截至 2026-10-07，**1.0.3「拾纲 Shigang」**已在两家商店公开上架，公开商品页面已核对：
+截至 2026-10-07，** 1.0.3「拾纲 Shigang」**已在两家商店公开上架，公开商品页面已核对：
 
 - [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)：页面显示版本 1.0.3。
 - [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)：公开商品页可访问。

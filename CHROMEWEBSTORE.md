@@ -1,6 +1,6 @@
 # Chrome Web Store 发布材料
 
-截至 2026-10-07（Asia/Shanghai），**拾纲 Shigang 1.0.3 已公开上架**。公开商品页已核对，显示版本 1.0.3、更新时间 2026-10-06。此前于 2026-10-04 提交审核。
+截至 2026-10-07（Asia/Shanghai），**拾纲 Shigang 1.0.3 已公开上架**。公开商品页已核对，显示版本 1.0.3、更新时间 2026-10-06。此前于 2026-10-04 提交审核。2026-10-07 的真实截图资料更新已成功提交，当前待审核，保留通过审核自动发布；现有公开版本仍为 1.0.3。
 
 - 公开安装：[Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)。
 - GitHub 发行：[v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3)。
@@ -29,10 +29,11 @@
 
 - 新图标：icons/shigang-128.png。可编辑源为 icons/shigang.svg，其余尺寸由 build-brand.py 生成。
 - 全球英文宣传图：dist/store-assets/shigang-promo-en-440x280.png，PNG RGB。
-- 全球英文截图：shigang-en-light-1280x800.jpg、shigang-en-dark-1280x800.jpg。
-- 中文本地化截图：shigang-zh-light-1280x800.jpg、shigang-zh-dark-1280x800.jpg。
-- 截图运行真实目录代码和示例内容，明确标注演示预览，非 ChatGPT 原站截图；审核说明也披露此点。
-- 已按用户确认移除后台旧图标、旧宣传图、两张旧截图，上传新素材。旧素材本地保留。
+- 本次全球截图与中文本地化截图：assets/screenshots/shigang-light-1280x800.png、shigang-dark-1280x800.png。
+- 两张均为用户提供的真实 ChatGPT 示例对话截图，只裁剪和等比缩放；裁掉账号头像及左侧导航，保留正文和完整目录。正文与目录标签为中文示例。
+- 商店使用 1280×800、24 位 RGB PNG；GitHub 另使用 1920×1080 的 16:9 版本。
+- 2026-10-04 的演示预览截图及原品牌素材保留在本地 dist/store-assets，作为历史资料。图标和宣传图没有在本次更换。
+- 2026-10-07 已保存全球及中文两组新截图并重新进入商品页核对，成功提交资料审核。凭据：dist/store-assets/chrome-real-screenshots-in-review.json。
 
 ## 权限和隐私
 

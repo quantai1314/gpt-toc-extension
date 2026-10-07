@@ -59,6 +59,15 @@
 
 Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) or [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj), refresh ChatGPT, and click **Outline**. Processing stays in your browser; only your sidebar width preference is saved locally. The [v1.0.3 release](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3) also includes the extension ZIP for manual installation.
 
+## Screenshots / 实际截图
+
+Real usage in light and dark mode, using a Chinese sample conversation. The account avatar and left navigation were cropped out.
+以下为公开知识示例对话的实际使用截图，已裁掉账号头像和左侧导航。
+
+![Shigang light mode / 拾纲浅色模式](assets/screenshots/shigang-light-1920x1080.png)
+
+![Shigang dark mode / 拾纲深色模式](assets/screenshots/shigang-dark-1920x1080.png)
+
 ## 不安装也能预览
 
 下载并解压仓库后，双击 [ui-preview.html](ui-preview.html)，即可查看新版界面。
@@ -151,6 +160,8 @@ python -m http.server 8765 --bind 127.0.0.1
 - [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)：页面显示版本 1.0.3。
 - [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)：公开商品页可访问。
 - [GitHub Release v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3)：发布说明含两家商店链接，附同一份商店提交 ZIP。
+
+2026-10-07 已将商店演示预览截图替换为真实浅色／深色示例截图并提交资料更新：Chrome 待审核，Edge In review；新图片通过审核后才会出现在商店，现有 1.0.3 仍已上架。GitHub 已同步真实截图。
 
 GitHub 源码已同步双语名称与界面、新图标及当前功能。两家提交的是同一安装包 `shigang-chatgpt-outline-1.0.3.zip`，SHA-256：`2dd46e628b566efe31a08213ea3bfa815041c3a2a38274389d3a6732ad325f99`。发布资料见 [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md)、[EDGEADDONS.md](EDGEADDONS.md)，中英文文案源为 [store-listings.json](store-listings.json)。
 

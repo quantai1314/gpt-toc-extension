@@ -1,4 +1,4 @@
-# ChatGPT Table of Contents 隐私政策 / Privacy Policy
+# 拾纲 · ChatGPT 对话目录 隐私政策 / Shigang Privacy Policy
 
 生效日期 / Effective date: 2026-10-04
 

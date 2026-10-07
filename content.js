@@ -1,4 +1,4 @@
-// ChatGPT Table of Contents Extension
+// Shigang — ChatGPT conversation outline. Based on the MIT upstream project.
 class ChatGPTTOC {
   constructor() {
     this.sidebar = null;
@@ -52,19 +52,19 @@ class ChatGPTTOC {
     this.sidebar.setAttribute('aria-hidden', 'true');
     this.sidebar.inert = true;
     this.sidebar.innerHTML = `
-      <div class="toc-resize-handle" role="separator" aria-label="调整目录宽度" aria-orientation="vertical" tabindex="0"></div>
+      <div class="toc-resize-handle" role="separator" aria-label="${shigangMessage('resizeLabel')}" aria-orientation="vertical" tabindex="0"></div>
       <div class="toc-header">
         <div class="toc-heading-block">
-          <div class="toc-eyebrow">CONVERSATION OUTLINE</div>
-          <h3 id="toc-title" class="toc-title">对话目录 <span class="toc-title-dot"></span></h3>
+          <div class="toc-eyebrow">SHIGANG / CHATGPT OUTLINE</div>
+          <h3 id="toc-title" class="toc-title">${shigangMessage('sidebarTitle')} <span class="toc-title-dot"></span></h3>
         </div>
-        <button class="toc-close" id="toc-close" aria-label="Close table of contents">×</button>
+        <button class="toc-close" id="toc-close" aria-label="${shigangMessage('closeLabel')}">×</button>
       </div>
-      <div class="toc-summary" id="toc-summary">正在整理对话…</div>
-      <div class="toc-content" id="toc-content" role="region" aria-label="Table of contents navigation">
-        <div class="toc-loading">Loading...</div>
+      <div class="toc-summary" id="toc-summary">${shigangMessage('organizing')}</div>
+      <div class="toc-content" id="toc-content" role="region" aria-label="${shigangMessage('navigationLabel')}">
+        <div class="toc-loading">${shigangMessage('loading')}</div>
       </div>
-      <div class="toc-footer"><span class="toc-status-dot"></span> <span>随正文跟随</span><button class="toc-width-reset" type="button" title="恢复自动宽度">自动宽度</button></div>
+      <div class="toc-footer"><span class="toc-status-dot"></span> <span>${shigangMessage('following')}</span><button class="toc-width-reset" type="button" title="${shigangMessage('resetWidth')}">${shigangMessage('autoWidth')}</button></div>
     `;
     
     document.body.appendChild(this.sidebar);
@@ -131,9 +131,9 @@ class ChatGPTTOC {
     // Create toggle button
     const toggleButton = document.createElement('button');
     toggleButton.id = 'chatgpt-toc-toggle';
-    toggleButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h10M7 10h10M7 15h6M3 5h.01M3 10h.01M3 15h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>目录</span>';
-    toggleButton.title = 'Open Table of Contents';
-    toggleButton.setAttribute('aria-label', 'Toggle table of contents sidebar');
+    toggleButton.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 5h10M7 10h10M7 15h6M3 5h.01M3 10h.01M3 15h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>' + shigangMessage('toggleText') + '</span>';
+    toggleButton.title = shigangMessage('openTitle');
+    toggleButton.setAttribute('aria-label', shigangMessage('toggleLabel'));
     toggleButton.setAttribute('aria-expanded', 'false');
     toggleButton.setAttribute('aria-controls', 'chatgpt-toc-sidebar');
     
@@ -294,7 +294,7 @@ class ChatGPTTOC {
     if (toggle) {
       const cramped = this.maxSidebarWidth < 220;
       toggle.classList.toggle('toc-compact', cramped);
-      toggle.title = cramped ? '右侧空间不足，目录已收起；扩大窗口或缩小页面后可展开' : '打开目录';
+      toggle.title = shigangMessage(cramped ? 'crampedTitle' : 'openTitle');
       // Keep the compact entry near the page header rather than over the answer.
       toggle.style.top = cramped ? '8px' : '80px';
       if (wasVisible && !this.isVisible && this.sidebar.contains(document.activeElement)) toggle.focus({ preventScroll: true });
@@ -536,9 +536,9 @@ class ChatGPTTOC {
   updateTOC() {
     const tocContent = document.getElementById('toc-content');
     const previousScrollTop = tocContent.scrollTop;
-    document.getElementById('toc-summary').textContent = `${this.responseGroups.length} 段回答 · ${this.headings.length} 个标题`;
+    document.getElementById('toc-summary').textContent = shigangMessage('summary', this.responseGroups.length, this.headings.length);
     if (this.responseGroups.length === 0) {
-      tocContent.innerHTML = '<div class="toc-empty">No responses found</div>';
+      tocContent.innerHTML = `<div class="toc-empty">${shigangMessage('emptyResponses')}</div>`;
       return;
     }
     let tocHTML = '';
@@ -547,14 +547,14 @@ class ChatGPTTOC {
       tocHTML += `
         <div class="toc-group-header toc-group-header-clickable" data-group="${groupIndex}">
           <div class="toc-group-text">
-            <span class="toc-group-title"><span class="toc-group-number">${String(groupIndex + 1).padStart(2, '0')}</span> 问题 <span class="toc-group-count">${group.headings.length} 个标题</span></span>
-            <span class="toc-group-prompt">${group.promptHTML || group.previewHTML || '新回答'}</span>
+            <span class="toc-group-title"><span class="toc-group-number">${String(groupIndex + 1).padStart(2, '0')}</span> ${shigangMessage('promptLabel')} <span class="toc-group-count">${shigangMessage('headingCount', group.headings.length)}</span></span>
+            <span class="toc-group-prompt">${group.promptHTML || group.previewHTML || shigangMessage('newResponse')}</span>
           </div>
           <span class="toc-group-collapse-icon">${isGroupCollapsed ? this.rightArrowSVG : this.downArrowSVG}</span>
         </div>
       `;
       // Render headings as a nested tree
-      tocHTML += `<div class="toc-group-content" data-group="${groupIndex}" style="display:${isGroupCollapsed ? 'none' : 'block'};">${group.headings.length ? this.renderHeadingsTree(group.headings, groupIndex) : '<div class="toc-empty">No headings in this response</div>'}</div>`;
+      tocHTML += `<div class="toc-group-content" data-group="${groupIndex}" style="display:${isGroupCollapsed ? 'none' : 'block'};">${group.headings.length ? this.renderHeadingsTree(group.headings, groupIndex) : `<div class="toc-empty">${shigangMessage('emptyHeadings')}</div>`}</div>`;
       if (groupIndex < this.responseGroups.length - 1) {
         tocHTML += '<div class="toc-group-separator"></div>';
       }

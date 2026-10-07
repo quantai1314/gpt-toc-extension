@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>对话目录 · 本地 UI 验收</title>
+  <title>拾纲 · 对话目录预览</title>
+  <link rel="icon" href="icons/shigang-32.png">
   <link rel="stylesheet" href="styles.css">
   <style>
     :root { color-scheme: light; --bg:#f7f8f5; --paper:#fff; --ink:#283b31; --muted:#819086; --line:#e4eae3; --tint:#eff3eb; }
@@ -50,7 +51,7 @@
 </head>
 <body>
   <aside class="demo-rail" aria-label="预览背景">
-    <div class="brand"><span class="brand-icon">≋</span> Outline</div>
+    <div class="brand"><img src="icons/shigang-32.png" width="29" height="29" alt=""> 拾纲 Shigang</div>
     <div class="rail-label">WORKSPACE</div>
     <div class="rail-item">＋ 新的对话</div>
     <div class="rail-label">最近的对话</div>
@@ -86,6 +87,7 @@
       <p class="preview-note">验收建议：检查加粗、行内代码、分数公式、标题层级、宽度调节、正文避让、阅读跟随、章节折叠和深浅色切换。示例公式内置 MathML，无需联网。</p>
     </main>
   </div>
+  <script src="localization.js"></script>
   <script src="content.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {

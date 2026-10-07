@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="拾纲：目录与书签">
+<rect x="4" y="4" width="120" height="120" rx="28" fill="#123C38"/>
+<path d="M32 43L32 91" stroke="#78BBA5" stroke-width="4" stroke-linecap="round"/>
+<path d="M52 43L74 43" stroke="#F4F6E8" stroke-width="8" stroke-linecap="round"/>
+<path d="M52 67L96 67" stroke="#F4F6E8" stroke-width="8" stroke-linecap="round"/>
+<path d="M52 91L79 91" stroke="#F4F6E8" stroke-width="8" stroke-linecap="round"/>
+<circle cx="32" cy="43" r="5" fill="#F4F6E8"/>
+<circle cx="32" cy="67" r="5" fill="#F4F6E8"/>
+<circle cx="32" cy="91" r="5" fill="#F4F6E8"/>
+<polygon points="88,25 104,25 104,55 96,49 88,55" fill="#EDBD67"/>
+</svg>

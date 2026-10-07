@@ -1,12 +1,12 @@
 {
-  "name": "chatgpt-toc-extension",
-  "version": "1.0.2",
-  "description": "ChatGPT 对话目录：新版页面兼容、分层折叠、标题跳转与深浅色侧栏。",
+  "name": "shigang-chatgpt-outline",
+  "version": "1.0.3",
+  "description": "拾纲：ChatGPT 对话目录，新版页面兼容、分层折叠、标题跳转与深浅色侧栏。",
   "main": "content.js",
   "scripts": {
     "test": "echo \"Serve this folder locally, then open tests/regression.html in Chrome; see README.md\"",
     "build": "echo \"Extension is ready to load in Chrome\"",
-    "build:preview": "node build-preview.cjs",
+    "build:preview": "node build-locales.cjs && node build-preview.cjs",
     "dev": "echo \"Load the extension in Chrome and navigate to test.html or ChatGPT\""
   },
   "keywords": [
@@ -17,7 +17,8 @@
     "navigation",
     "sidebar"
   ],
-  "author": "Leo Z",
+  "author": "quantai1314",
+  "contributors": ["Leo Z (original project)"],
   "license": "MIT",
   "repository": {
     "type": "git",

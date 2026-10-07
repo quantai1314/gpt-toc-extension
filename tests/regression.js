@@ -27,6 +27,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     </div>`;
   try {
+    await check('English outline labels and translated numeric placeholders are usable', async () => {
+      assert(document.getElementById('toc-title').textContent.trim() === 'Shigang · Outline', 'English brand title missing');
+      assert(document.querySelector('#chatgpt-toc-toggle span').textContent === 'Outline', 'English entry missing');
+      assert(shigangMessage('summary', 2, 5) === '2 responses · 5 headings', 'English counts or placeholders broken');
+      assert(shigangMessage('headingCount', 3) === '3 headings', 'English heading count broken');
+    });
+    await check('Chinese outline labels preserve user content and restore English fallback', async () => {
+      document.documentElement.lang = 'zh-CN';
+      main.innerHTML = modern('Original user prompt', 'Untranslated heading');
+      await waitFor(() => headings().includes('Untranslated heading'));
+      assert(document.getElementById('toc-summary').textContent === '1 段回答 · 1 个标题', 'Chinese numeric placeholders broken');
+      assert(document.querySelector('.toc-group-title').textContent.includes('问题'), 'Chinese prompt label missing');
+      assert(document.querySelector('.toc-group-prompt').textContent === 'Original user prompt', 'User content translated unexpectedly');
+      document.documentElement.lang = 'en';
+      main.replaceChildren();
+      await waitFor(() => document.querySelector('.toc-empty')?.textContent === 'No responses found');
+    });
     await check('Empty page initializes without waiting for a reply', async () => {
       assert(document.querySelector('.toc-empty').textContent === 'No responses found', 'Missing empty state');
     });
@@ -122,7 +139,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       await waitFor(() => document.querySelector('.toc-text mi')?.getAttribute('mathvariant') === 'normal');
     });
     await check('Prompt formulas stay complete and long formulas fit inside the sidebar', async () => {
-      main.innerHTML = modern('P'.repeat(198) + fraction + ' trailing text', `<math><mrow>${'<mi>x</mi><mo>+</mo>'.repeat(80)}<mn>1</mn></mrow></math>`);
+      // Keep the source formula horizontally scrollable, as in a rendered chat.
+      // Otherwise it occupies the entire viewport and correctly closes the adaptive sidebar.
+      main.innerHTML = modern('P'.repeat(198) + fraction + ' trailing text', `<span style="display:block;max-width:100%;overflow-x:auto"><math><mrow>${'<mi>x</mi><mo>+</mo>'.repeat(80)}<mn>1</mn></mrow></math></span>`);
       await waitFor(() => document.querySelector('.toc-text math mo'));
       assert(document.querySelector('.toc-group-prompt mfrac msup'), 'Prompt formula was cut');
       assert(document.querySelector('.toc-group-prompt').textContent.endsWith('…'), 'Prompt length limit missing');

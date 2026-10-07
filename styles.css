@@ -21,13 +21,14 @@
   transform: translateX(calc(100% + 32px)); transition: transform .24s ease;
 }
 #chatgpt-toc-sidebar .toc-header { display: flex; align-items: center; justify-content: space-between; padding: 25px 24px 16px; gap: 12px; }
+#chatgpt-toc-sidebar .toc-heading-block { min-width: 0; }
 #chatgpt-toc-sidebar .toc-resize-handle { position: absolute; top: 20px; bottom: 20px; left: 0; width: 8px; cursor: ew-resize; touch-action: none; z-index: 1; }
 #chatgpt-toc-sidebar .toc-resize-handle:hover, #chatgpt-toc-sidebar .toc-resize-handle:focus-visible, #chatgpt-toc-sidebar.toc-resizing .toc-resize-handle { background: var(--toc-line); }
 #chatgpt-toc-sidebar.toc-resizing { user-select: none; }
 #chatgpt-toc-sidebar .toc-eyebrow { color: var(--toc-muted); font-size: 9px; font-weight: 600; letter-spacing: 1.55px; margin-bottom: 9px; }
-#chatgpt-toc-sidebar .toc-title { display: flex; align-items: center; gap: 9px; color: var(--toc-text); font-size: 20px; line-height: 1.4; font-weight: 650; letter-spacing: -.5px; margin: 0; }
+#chatgpt-toc-sidebar .toc-title { display: flex; align-items: center; gap: 9px; color: var(--toc-text); font-size: 20px; line-height: 1.4; font-weight: 650; letter-spacing: -.5px; margin: 0; flex-wrap: wrap; }
 #chatgpt-toc-sidebar .toc-title-dot { width: 6px; height: 6px; background: var(--toc-accent); border-radius: 50%; }
-#chatgpt-toc-sidebar .toc-close { width: 30px; height: 30px; border: 0; background: transparent; color: var(--toc-muted); font-size: 22px; font-weight: 300; cursor: pointer; border-radius: 9px; display: grid; place-items: center; padding: 0; }
+#chatgpt-toc-sidebar .toc-close { width: 30px; height: 30px; flex-shrink: 0; border: 0; background: transparent; color: var(--toc-muted); font-size: 22px; font-weight: 300; cursor: pointer; border-radius: 9px; display: grid; place-items: center; padding: 0; }
 #chatgpt-toc-sidebar .toc-close:hover { color: var(--toc-text); background: var(--toc-hover); }
 #chatgpt-toc-sidebar .toc-summary { margin: 0 24px; padding-bottom: 18px; border-bottom: 1px solid var(--toc-line); color: var(--toc-muted); font-size: 11px; letter-spacing: .15px; }
 #chatgpt-toc-sidebar .toc-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 17px 14px 24px; scrollbar-width: thin; scrollbar-color: var(--toc-line) transparent; }

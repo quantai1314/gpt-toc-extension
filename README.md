@@ -1,10 +1,14 @@
-# ChatGPT 对话目录
+# 拾纲 Shigang - ChatGPT Table of Contents
 
 为 ChatGPT 长对话添加一个可折叠的右侧目录。按回答整理标题，点击即可跳转，减少来回翻找。
 
+<img src="icons/shigang-128.png" alt="拾纲图标" width="80" height="80">
+
+**拾纲 Shigang** 是本维护版本的独立名称。图标采用深青色、浅色目录线条与琥珀色书签；保留原项目的 MIT 版权署名。
+
 本仓库由 [quantai1314](https://github.com/quantai1314) 维护，基于 [WindZZzzZZzz/gpt-toc-extension](https://github.com/WindZZzzZZzz/gpt-toc-extension) 修改，主要包含 **新版 ChatGPT 页面兼容修复**和**侧栏 UI 重设计**。兼容性修复已单独提交至原项目 [PR #20](https://github.com/WindZZzzZZzz/gpt-toc-extension/pull/20)，新版 UI 在本仓库维护。
 
-[下载 ZIP](https://github.com/quantai1314/gpt-toc-extension/archive/refs/heads/main.zip) · [反馈问题](https://github.com/quantai1314/gpt-toc-extension/issues) · [修改记录](CHANGELOG.md)
+[Chrome 商店安装](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) · [Edge 商店安装](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj) · [v1.0.3 Release](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3) · [反馈问题](https://github.com/quantai1314/gpt-toc-extension/issues) · [修改记录](CHANGELOG.md)
 
 ## 功能
 
@@ -20,13 +24,19 @@
 - **紧凑侧栏**：圆角悬浮面板、两行问题摘要，以及回答和标题数量统计。
 - **深浅色适配**：优先识别页面主题标记，没有明确标记时跟随系统偏好。
 - **键盘操作**：聚焦目录标题后，可以按 Enter 或空格跳转。
+- **中英文界面**：按浏览器语言显示中文或英文名称、按钮和摘要；英文品牌为 Shigang。
 
 ## 安装
 
-当前修改版通过本仓库分发。原项目的 Chrome 商店版本不等于本仓库版本。
+推荐从商店安装 **拾纲 Shigang**，无需开发者模式，后续更新由浏览器管理：
+
+- [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)
+
+安装后刷新 [ChatGPT](https://chatgpt.com/)，点击右上方的「目录」。下面是手动加载源码的替代方式：
 
 1. [下载 ZIP](https://github.com/quantai1314/gpt-toc-extension/archive/refs/heads/main.zip)，解压到一个准备长期保留的目录。
-2. 打开 Chrome，进入 `chrome://extensions/`。
+2. 打开 Chrome 的 `chrome://extensions/`，或 Edge 的 `edge://extensions/`。
 3. 打开右上角的「开发者模式」。
 4. 点击「加载已解压的扩展程序」，选择**直接包含 `manifest.json` 的文件夹**。
 5. 打开或刷新 [ChatGPT](https://chatgpt.com/)，点击页面右上方的「目录」。
@@ -39,9 +49,15 @@
 
 点击目录标题可以定位正文；点击右侧小箭头可以折叠或展开。点击问题摘要会定位对应问题；点击右上角「×」关闭侧栏，再点「目录」可重新打开。
 
-更新文件后，需要在 `chrome://extensions/` 中重新加载 **ChatGPT Table of Contents**，再刷新 ChatGPT 页面。仅刷新网页不会让 Chrome 重新加载扩展文件。
+商店安装版由浏览器管理更新；更新后刷新 ChatGPT 页面即可。手动加载版更新文件后，需要在 `chrome://extensions/` 或 `edge://extensions/` 中重新加载 **拾纲 Shigang - ChatGPT 对话目录**，再刷新 ChatGPT 页面。仅刷新网页不会重新加载本地扩展文件。
 
 如果更换了扩展文件夹的位置，请重新使用「加载已解压的扩展程序」选择新位置。
+
+## English
+
+**Shigang** adds a collapsible table of contents to long ChatGPT conversations. Navigate headings, resize the sidebar, follow your reading position, and keep rendered Markdown and math. English and Simplified Chinese interfaces are included.
+
+Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) or [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj), refresh ChatGPT, and click **Outline**. Processing stays in your browser; only your sidebar width preference is saved locally. The [v1.0.3 release](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3) also includes the extension ZIP for manual installation.
 
 ## 不安装也能预览
 
@@ -96,6 +112,7 @@
 | `manifest.json` | Chrome 扩展配置 |
 | `preview.html` | 引用当前源码的预览模板 |
 | `build-preview.cjs` | 将模板、样式和脚本打包为单个 HTML |
+| `build-brand.py`、`icons/shigang.svg` | 可编辑的品牌图标与 PNG 生成脚本（Pillow） |
 | `ui-preview.html` | 可直接打开的独立预览文件 |
 | `tests/regression.html`、`tests/regression.js` | 浏览器回归检查 |
 | `test.html` | 旧版消息结构的手动示例页 |
@@ -104,8 +121,7 @@
 修改源码后，重新生成独立预览：
 
 ```sh
-node build-preview.cjs
-# 或 npm run build:preview
+npm run build:preview
 ```
 
 JavaScript 语法检查：
@@ -122,15 +138,21 @@ node --check build-preview.cjs
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
-随后打开 `http://127.0.0.1:8765/tests/regression.html`。页面会显示逐项结果，全部通过时显示 **34 tests passed**。建议窗口宽度至少 1100px，以便同时显示测试正文和目录。`npm test` 仅显示运行指引，不会自动执行这些浏览器检查。
+随后打开 `http://127.0.0.1:8765/tests/regression.html`。页面会显示逐项结果，全部通过时显示 **36 tests passed**。建议窗口宽度至少 1100px，以便同时显示测试正文和目录。`npm test` 仅显示运行指引，不会自动执行这些浏览器检查。
 
-2026-10-04 本地源码通过 34 项 Chrome 浏览器回归检查，额外覆盖宽度调节、正文避让、阅读跟随及隐藏旧工作区的对话切换：地址先切换而正文稍后切换、仅改变工作区可见性、空对话异步加载和宽度偏好保留。
+2026-10-04 本地源码通过 36 项 Chromium 浏览器回归检查，覆盖宽度调节、正文避让、阅读跟随及隐藏旧工作区的对话切换：地址先切换而正文稍后切换、仅改变工作区可见性、空对话异步加载和宽度偏好保留；另验证英文标签、中文回退及数量占位符。这次回归记录不包含 Edge 浏览器安装实测。商店上架状态见下方发布记录。
 
 2026-10-03 在 Chrome 中通过 20 项检查，覆盖新旧消息结构、去重、问题关联、流式更新、空状态、导航目标替换、文字转义、观察器循环，以及 Markdown 格式、公式去重、分数与上下标、矩阵、异步公式更新、长公式布局和安全属性过滤。独立预览的深浅色公式显示已检查。此次也读取了实际 ChatGPT 页面的 KaTeX DOM，确认旧目录出现重复公式文字的原因；新源码仍需重新加载扩展后在实际页面验收。以上不代表对未来 ChatGPT 页面变更的保证。
 
-## Chrome 商店发布准备
+## Chrome 与 Edge 商店发布
 
-商店文案、权限理由、数据处理声明和提交记录见 [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md)。`dist/chatgpt-toc-1.0.2.zip` 是此前提交的 Markdown／公式显示修复包；提交时后台状态为“待审核”，通过审核后自动发布。审核提交不代表已上架。新增的宽度调节、正文避让、阅读跟随和对话切换修复已包含在 GitHub 源码与独立预览中，尚未重新打包或提交商店。
+截至 2026-10-07，**1.0.3「拾纲 Shigang」**已在两家商店公开上架，公开商品页面已核对：
+
+- [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)：页面显示版本 1.0.3。
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)：公开商品页可访问。
+- [GitHub Release v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3)：发布说明含两家商店链接，附同一份商店提交 ZIP。
+
+GitHub 源码已同步双语名称与界面、新图标及当前功能。两家提交的是同一安装包 `shigang-chatgpt-outline-1.0.3.zip`，SHA-256：`2dd46e628b566efe31a08213ea3bfa815041c3a2a38274389d3a6732ad325f99`。发布资料见 [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md)、[EDGEADDONS.md](EDGEADDONS.md)，中英文文案源为 [store-listings.json](store-listings.json)。
 
 ## 数据处理
 
@@ -140,4 +162,4 @@ python -m http.server 8765 --bind 127.0.0.1
 
 感谢原作者及原项目贡献者。本项目保留原项目的 [MIT License](LICENSE) 和版权声明。
 
-遇到问题请在[本仓库 Issues](https://github.com/quantai1314/gpt-toc-extension/issues) 中说明浏览器版本、复现步骤和错误文字。提供截图时请遮住不希望公开的聊天内容。
+遇到问题请在[本仓库 Issues](https://github.com/quantai1314/gpt-toc-extension/issues) 中说明浏览器版本、复现步骤和错误文字。提供截图时建议新建仅含公开知识的示例对话，截取相关正文和目录，避开账号信息、左侧历史记录及分享链接；不需要提供私人聊天。

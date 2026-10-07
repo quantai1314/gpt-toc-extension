@@ -1,5 +1,7 @@
 # 拾纲 Shigang - ChatGPT Table of Contents
 
+**简体中文** | [English](README.en.md)
+
 为 ChatGPT 长对话添加一个可折叠的右侧目录。按回答整理标题，点击即可跳转，减少来回翻找。
 
 <img src="icons/shigang-128.png" alt="拾纲图标" width="80" height="80">
@@ -53,15 +55,8 @@
 
 如果更换了扩展文件夹的位置，请重新使用「加载已解压的扩展程序」选择新位置。
 
-## English
+## 实际截图
 
-**Shigang** adds a collapsible table of contents to long ChatGPT conversations. Navigate headings, resize the sidebar, follow your reading position, and keep rendered Markdown and math. English and Simplified Chinese interfaces are included.
-
-Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) or [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj), refresh ChatGPT, and click **Outline**. Processing stays in your browser; only your sidebar width preference is saved locally. The [v1.0.3 release](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3) also includes the extension ZIP for manual installation.
-
-## Screenshots / 实际截图
-
-Real usage in light and dark mode, using a Chinese sample conversation. The account avatar and left navigation were cropped out.
 以下为公开知识示例对话的实际使用截图，已裁掉账号头像和左侧导航。
 
 ![Shigang light mode / 拾纲浅色模式](assets/screenshots/shigang-light-1920x1080.png)
@@ -155,7 +150,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ## Chrome 与 Edge 商店发布
 
-截至 2026-10-07，** 1.0.3「拾纲 Shigang」**已在两家商店公开上架，公开商品页面已核对：
+截至 2026-10-07，**1.0.3「拾纲 Shigang」** 已在两家商店公开上架，公开商品页面已核对：
 
 - [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)：页面显示版本 1.0.3。
 - [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)：公开商品页可访问。

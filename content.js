@@ -1,4 +1,21 @@
 // Shigang — ChatGPT conversation outline. Based on the MIT upstream project.
+const MIN_SIDEBAR_WIDTH = 220;
+const DEFAULT_SIDEBAR_WIDTH = 300;
+const MAX_SIDEBAR_WIDTH = 420;
+
+// Tag and attribute allow-lists for renderInlineContent; shared across calls.
+const INLINE_TAGS = new Set(['strong', 'b', 'em', 'i', 'code', 's', 'del', 'sub', 'sup', 'br']);
+const SKIPPED_TAGS = new Set(['script', 'style', 'iframe', 'object', 'embed', 'img',
+  'svg', 'button', 'input', 'textarea', 'select', 'annotation', 'annotation-xml']);
+const MATH_TAGS = new Set(['math', 'semantics', 'mrow', 'mi', 'mn', 'mo', 'mtext',
+  'mspace', 'mfrac', 'msup', 'msub', 'msubsup', 'msqrt', 'mroot', 'mover', 'munder',
+  'munderover', 'mtable', 'mtr', 'mtd', 'menclose', 'mpadded', 'mphantom', 'mstyle',
+  'mmultiscripts', 'mprescripts', 'none']);
+const MATH_ATTRIBUTES = new Set(['mathvariant', 'stretchy', 'fence', 'separator',
+  'form', 'lspace', 'rspace', 'linethickness', 'accent', 'accentunder', 'movablelimits',
+  'largeop', 'scriptlevel', 'displaystyle', 'columnalign', 'rowalign', 'columnspacing',
+  'rowspacing', 'rowspan', 'columnspan', 'notation', 'width', 'height', 'depth', 'voffset']);
+
 class ChatGPTTOC {
   constructor() {
     this.sidebar = null;
@@ -14,7 +31,7 @@ class ChatGPTTOC {
     this.conversationRoot = null;
     this.lastTOCSignature = null;
     this.preferredWidth = null;
-    this.maxSidebarWidth = 420;
+    this.maxSidebarWidth = MAX_SIDEBAR_WIDTH;
     this.openRequested = false;
     this.followPaused = false;
     this.framePending = false;
@@ -40,6 +57,10 @@ class ChatGPTTOC {
     this.observeThemeChanges();
     this.observeReadingPosition();
     this.loadWidthPreference();
+    // Escape closes the sidebar without disturbing page state
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && this.isVisible) this.toggleSidebar();
+    });
   }
 
   createSidebar() {
@@ -73,36 +94,40 @@ class ChatGPTTOC {
     // Initialize theme
     this.updateTheme();
     
-    // Add close button functionality
+    // Add close button functionality (native buttons already fire click on Enter/Space)
     const closeButton = document.getElementById('toc-close');
     closeButton.addEventListener('click', () => {
       this.toggleSidebar();
     });
-    
-    // Add keyboard support for close button
-    closeButton.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.toggleSidebar();
-      }
-    });
 
-
-    // Attach event delegation for collapse/expand and scroll only once
+    // Attach event delegation for groups, collapse/expand and scroll only once
     const tocContent = document.getElementById('toc-content');
     tocContent.addEventListener('keydown', e => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.toc-item')) {
+      if ((e.key === 'Enter' || e.key === ' ') &&
+          e.target.matches('.toc-item, .toc-group-header-clickable')) {
         e.preventDefault();
         e.target.click();
       }
     });
     tocContent.addEventListener('click', (e) => {
+      const groupCollapseIcon = e.target.closest('.toc-group-collapse-icon');
+      if (groupCollapseIcon) {
+        const groupHeader = groupCollapseIcon.closest('.toc-group-header');
+        if (!groupHeader) return;
+        this.toggleGroupCollapse(parseInt(groupHeader.getAttribute('data-group'), 10));
+        return;
+      }
+      const groupHeader = e.target.closest('.toc-group-header-clickable');
+      if (groupHeader) {
+        this.scrollToResponse(parseInt(groupHeader.getAttribute('data-group'), 10));
+        return;
+      }
       const collapseIcon = e.target.closest('.toc-collapse-icon');
       if (collapseIcon) {
         const tocItem = collapseIcon.closest('.toc-item');
         if (!tocItem) return;
-        const groupIndex = parseInt(tocItem.getAttribute('data-group'));
-        const headingIndex = parseInt(tocItem.getAttribute('data-heading'));
+        const groupIndex = parseInt(tocItem.getAttribute('data-group'), 10);
+        const headingIndex = parseInt(tocItem.getAttribute('data-heading'), 10);
         const collapseKey = `${groupIndex}-${headingIndex}`;
         if (this.collapsedHeadings.has(collapseKey)) {
           this.collapsedHeadings.delete(collapseKey);
@@ -121,8 +146,8 @@ class ChatGPTTOC {
       // If not collapse icon, check for toc-item (scroll)
       const tocItem = e.target.closest('.toc-item');
       if (tocItem) {
-        const groupIndex = parseInt(tocItem.getAttribute('data-group'));
-        const headingIndex = parseInt(tocItem.getAttribute('data-heading'));
+        const groupIndex = parseInt(tocItem.getAttribute('data-group'), 10);
+        const headingIndex = parseInt(tocItem.getAttribute('data-heading'), 10);
         this.scrollToHeading(groupIndex, headingIndex);
       }
     });
@@ -140,15 +165,7 @@ class ChatGPTTOC {
     toggleButton.addEventListener('click', () => {
       this.toggleSidebar();
     });
-    
-    toggleButton.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.toggleSidebar();
-      }
-    });
-    
-    
+
     document.body.appendChild(toggleButton);
     // Ensure button is visible if sidebar is hidden
     toggleButton.style.display = this.isVisible ? 'none' : '';
@@ -188,7 +205,7 @@ class ChatGPTTOC {
         ? (await chrome.storage.local.get(this.widthStorageKey))[this.widthStorageKey]
         : this.previewStorageAvailable() ? JSON.parse(localStorage.getItem(this.widthStorageKey)) : null;
       if (typeof stored === 'number' && Number.isFinite(stored)) {
-        this.preferredWidth = Math.max(220, Math.min(420, stored));
+        this.preferredWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, stored));
       }
     } catch (_) { /* Storage may be disabled; sizing still works for this page. */ }
     this.scheduleReadingUpdate(true);
@@ -218,7 +235,7 @@ class ChatGPTTOC {
     });
     handle.addEventListener('pointermove', event => {
       if (!drag) return;
-      this.preferredWidth = Math.max(220, Math.min(this.maxSidebarWidth, drag.width + drag.x - event.clientX));
+      this.preferredWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(this.maxSidebarWidth, drag.width + drag.x - event.clientX));
       this.updateLayout();
     });
     const finishDrag = () => {
@@ -233,7 +250,7 @@ class ChatGPTTOC {
     handle.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
       event.preventDefault();
-      this.preferredWidth = event.key === 'Home' ? null : Math.max(220, Math.min(this.maxSidebarWidth,
+      this.preferredWidth = event.key === 'Home' ? null : Math.max(MIN_SIDEBAR_WIDTH, Math.min(this.maxSidebarWidth,
         this.sidebar.getBoundingClientRect().width + (event.key === 'ArrowLeft' ? 20 : -20)));
       this.updateLayout();
       this.saveWidthPreference();
@@ -251,7 +268,11 @@ class ChatGPTTOC {
       '[data-markdown-text-style="assistant-message"], [data-message-author-role="assistant"] .markdown, [data-user-message-bubble]'
     ) : []);
     for (const group of this.responseGroups) {
-      if (![...roots].some(root => group.messageElement.contains(root))) roots.add(group.messageElement);
+      let covered = false;
+      for (const root of roots) {
+        if (group.messageElement.contains(root)) { covered = true; break; }
+      }
+      if (!covered) roots.add(group.messageElement);
       if (group.promptElement && !group.promptElement.querySelector('[data-user-message-bubble]')) roots.add(group.promptElement);
     }
     this.contentRoots = [...roots];
@@ -265,34 +286,40 @@ class ChatGPTTOC {
     const viewportWidth = document.documentElement.clientWidth;
     const edge = viewportWidth <= 600 ? 8 : 16;
     let right = 0;
+    // Include wide code, tables, images and formulas, but respect clipping containers.
+    // Ancestor boundaries repeat across siblings, so memoize them for this pass.
+    const clipCache = new Map();
+    const clipBoundary = parent => {
+      if (!parent || parent === document.body) return Infinity;
+      if (clipCache.has(parent)) return clipCache.get(parent);
+      let boundary = clipBoundary(parent.parentElement);
+      if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(parent).overflowX)) {
+        boundary = Math.min(boundary, parent.getBoundingClientRect().right);
+      }
+      clipCache.set(parent, boundary);
+      return boundary;
+    };
     for (const root of this.contentRoots) {
-      // Include wide code, tables, images and formulas, but respect clipping containers.
       for (const element of [root, ...root.querySelectorAll('pre, table, math, img, svg, canvas, code')]) {
         const rect = element.getBoundingClientRect();
         if (!rect.width || !rect.height) continue;
-        let boundary = rect.right;
-        for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
-          if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(parent).overflowX)) {
-            boundary = Math.min(boundary, parent.getBoundingClientRect().right);
-          }
-        }
-        right = Math.max(right, boundary);
+        right = Math.max(right, Math.min(rect.right, clipBoundary(element.parentElement)));
       }
     }
-    this.maxSidebarWidth = Math.max(0, Math.min(420, Math.floor(viewportWidth - right - edge - 16)));
-    const width = Math.min(this.preferredWidth ?? 300, this.maxSidebarWidth);
+    this.maxSidebarWidth = Math.max(0, Math.min(MAX_SIDEBAR_WIDTH, Math.floor(viewportWidth - right - edge - 16)));
+    const width = Math.min(this.preferredWidth ?? DEFAULT_SIDEBAR_WIDTH, this.maxSidebarWidth);
     this.sidebar.style.width = `${Math.max(0, width)}px`;
     const handle = this.sidebar.querySelector('.toc-resize-handle');
-    handle.setAttribute('aria-valuemin', '220');
+    handle.setAttribute('aria-valuemin', String(MIN_SIDEBAR_WIDTH));
     handle.setAttribute('aria-valuemax', String(this.maxSidebarWidth));
     handle.setAttribute('aria-valuenow', String(Math.round(width)));
     const reset = this.sidebar.querySelector('.toc-width-reset');
     reset.disabled = this.preferredWidth === null;
     const wasVisible = this.isVisible;
-    this.setSidebarVisible(this.openRequested && width >= 220);
+    this.setSidebarVisible(this.openRequested && width >= MIN_SIDEBAR_WIDTH);
     const toggle = document.getElementById('chatgpt-toc-toggle');
     if (toggle) {
-      const cramped = this.maxSidebarWidth < 220;
+      const cramped = this.maxSidebarWidth < MIN_SIDEBAR_WIDTH;
       toggle.classList.toggle('toc-compact', cramped);
       toggle.title = shigangMessage(cramped ? 'crampedTitle' : 'openTitle');
       // Keep the compact entry near the page header rather than over the answer.
@@ -414,16 +441,28 @@ class ChatGPTTOC {
     const userPrompts = root ? Array.from(root.querySelectorAll(
       '[data-message-author-role="user"], [data-user-message-bubble]'
     )) : [];
+    // Find the last prompt preceding a message by binary search: querySelectorAll
+    // returns document order, so this is O(log n) per message instead of O(n).
+    const findPrecedingPrompt = message => {
+      let low = 0;
+      let high = userPrompts.length - 1;
+      let found = null;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (userPrompts[mid].compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING) {
+          found = userPrompts[mid];
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      return found;
+    };
     const groups = [];
     messages.forEach(message => {
       // Match the preceding prompt in DOM order, not by array index (one prompt
       // can have several assistant messages, and old turns may be virtualized).
-      let promptElement = null;
-      for (const user of userPrompts) {
-        if (user.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          promptElement = user;
-        }
-      }
+      const promptElement = findPrecedingPrompt(message);
       const promptHTML = promptElement ? this.renderInlineContent(promptElement, 200) : '';
       // Find headings within this specific message
       const headings = Array.from(message.querySelectorAll('h1, h2, h3, h4, h5, h6'))
@@ -455,7 +494,9 @@ class ChatGPTTOC {
     this.responseGroups = groups;
     // Flatten all headings for backward compatibility
     this.headings = this.responseGroups.flatMap(group => group.headings);
-    this.refreshLayoutTargets();
+    // Layout targets only change with the message set; streaming text edits keep
+    // the same elements, and the ResizeObserver already covers their size changes.
+    if (!sameTargets) this.refreshLayoutTargets();
     if (sameTargets && signature === this.lastTOCSignature) return;
     this.lastTOCSignature = signature;
     this.updateTOC();
@@ -464,23 +505,12 @@ class ChatGPTTOC {
   renderInlineContent(source, maxLength = Infinity) {
     // Read the already-rendered Markdown, without copying site controls, URLs,
     // event handlers or arbitrary styles into the clickable directory.
-    const inlineTags = new Set(['strong', 'b', 'em', 'i', 'code', 's', 'del', 'sub', 'sup', 'br']);
-    const skippedTags = new Set(['script', 'style', 'iframe', 'object', 'embed', 'img',
-      'svg', 'button', 'input', 'textarea', 'select', 'annotation', 'annotation-xml']);
-    const mathTags = new Set(['math', 'semantics', 'mrow', 'mi', 'mn', 'mo', 'mtext',
-      'mspace', 'mfrac', 'msup', 'msub', 'msubsup', 'msqrt', 'mroot', 'mover', 'munder',
-      'munderover', 'mtable', 'mtr', 'mtd', 'menclose', 'mpadded', 'mphantom', 'mstyle',
-      'mmultiscripts', 'mprescripts', 'none']);
-    const mathAttributes = new Set(['mathvariant', 'stretchy', 'fence', 'separator',
-      'form', 'lspace', 'rspace', 'linethickness', 'accent', 'accentunder', 'movablelimits',
-      'largeop', 'scriptlevel', 'displaystyle', 'columnalign', 'rowalign', 'columnspacing',
-      'rowspacing', 'rowspan', 'columnspan', 'notation', 'width', 'height', 'depth', 'voffset']);
     const cleanMath = node => {
       if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent);
-      if (node.nodeType !== Node.ELEMENT_NODE || !mathTags.has(node.localName)) return null;
+      if (node.nodeType !== Node.ELEMENT_NODE || !MATH_TAGS.has(node.localName)) return null;
       const copy = document.createElementNS('http://www.w3.org/1998/Math/MathML', node.localName);
       for (const attribute of node.attributes) {
-        if (mathAttributes.has(attribute.name) && /^[\w\s+.,%()|\-]+$/.test(attribute.value)) {
+        if (MATH_ATTRIBUTES.has(attribute.name) && /^[\w\s+.,%()|\-]+$/.test(attribute.value)) {
           copy.setAttribute(attribute.name, attribute.value);
         }
       }
@@ -500,7 +530,7 @@ class ChatGPTTOC {
     };
     const visit = (node, target) => {
       if (node.nodeType === Node.TEXT_NODE) { appendText(node.textContent, target); return; }
-      if (node.nodeType !== Node.ELEMENT_NODE || skippedTags.has(node.localName)) return;
+      if (node.nodeType !== Node.ELEMENT_NODE || SKIPPED_TAGS.has(node.localName)) return;
       // KaTeX includes MathML, a TeX annotation and visual HTML for one formula.
       // Copy only the MathML expression: Chrome renders it without KaTeX assets.
       if (node.matches('math, .katex, .katex-display, mjx-container, [data-math-source]')) {
@@ -523,7 +553,7 @@ class ChatGPTTOC {
         }
       }
       if (node.matches('[hidden], [aria-hidden="true"], .sr-only, [data-conversation-role]')) return;
-      const copy = inlineTags.has(node.localName) ? document.createElement(node.localName) : target;
+      const copy = INLINE_TAGS.has(node.localName) ? document.createElement(node.localName) : target;
       for (const child of node.childNodes) visit(child, copy);
       if (copy !== target) target.appendChild(copy);
     };
@@ -545,7 +575,7 @@ class ChatGPTTOC {
     this.responseGroups.forEach((group, groupIndex) => {
       const isGroupCollapsed = this.collapsedGroups.has(groupIndex);
       tocHTML += `
-        <div class="toc-group-header toc-group-header-clickable" data-group="${groupIndex}">
+        <div class="toc-group-header toc-group-header-clickable" role="button" tabindex="0" aria-expanded="${!isGroupCollapsed}" data-group="${groupIndex}">
           <div class="toc-group-text">
             <span class="toc-group-title"><span class="toc-group-number">${String(groupIndex + 1).padStart(2, '0')}</span> ${shigangMessage('promptLabel')} <span class="toc-group-count">${shigangMessage('headingCount', group.headings.length)}</span></span>
             <span class="toc-group-prompt">${group.promptHTML || group.previewHTML || shigangMessage('newResponse')}</span>
@@ -562,29 +592,6 @@ class ChatGPTTOC {
     tocContent.innerHTML = tocHTML;
     tocContent.scrollTop = previousScrollTop;
     this.scheduleReadingUpdate();
-    // Group header click toggles collapse and scrolls to response
-    const groupHeaders = tocContent.querySelectorAll('.toc-group-header-clickable');
-    groupHeaders.forEach((header) => {
-      header.addEventListener('click', (e) => {
-        // Don't trigger if clicking on the collapse icon
-        if (e.target.closest('.toc-group-collapse-icon')) {
-          return;
-        }
-        const groupIndex = parseInt(header.getAttribute('data-group'));
-        this.scrollToResponse(groupIndex);
-      });
-    });
-    
-    // Add collapse icon functionality
-    const collapseIcons = tocContent.querySelectorAll('.toc-group-collapse-icon');
-    collapseIcons.forEach((icon) => {
-      icon.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent triggering the header click
-        const groupHeader = icon.closest('.toc-group-header');
-        const groupIndex = parseInt(groupHeader.getAttribute('data-group'));
-        this.toggleGroupCollapse(groupIndex);
-      });
-    });
   }
 
   renderHeadingsTree(headings, groupIndex) {
@@ -594,7 +601,7 @@ class ChatGPTTOC {
     headings.forEach((heading, i) => {
       const node = {
         index: i,
-        level: parseInt(heading.tagName.charAt(1)),
+        level: parseInt(heading.tagName.charAt(1), 10),
         html: this.responseGroups[groupIndex].headingHTML[i],
         children: [],
         heading
@@ -663,6 +670,7 @@ class ChatGPTTOC {
       const isCollapsed = this.collapsedGroups.has(groupIndex);
       groupContent.style.display = isCollapsed ? 'none' : 'block';
       collapseIcon.innerHTML = isCollapsed ? this.rightArrowSVG : this.downArrowSVG;
+      groupHeader.setAttribute('aria-expanded', String(!isCollapsed));
     }
   }
 
@@ -750,11 +758,14 @@ class ChatGPTTOC {
   }
 }
 
-// Initialize the extension when the page loads
+// Initialize the extension when the page loads, guarding against reinjection
+// (extension updates or duplicate content-script registration).
+const bootShigangTOC = () => {
+  if (globalThis.__shigangTOCInstance) return;
+  globalThis.__shigangTOCInstance = new ChatGPTTOC();
+};
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new ChatGPTTOC();
-  });
+  document.addEventListener('DOMContentLoaded', bootShigangTOC);
 } else {
-  new ChatGPTTOC();
-} 
+  bootShigangTOC();
+}

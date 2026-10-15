@@ -66,7 +66,6 @@
 #chatgpt-toc-sidebar .toc-empty, #chatgpt-toc-sidebar .toc-loading { padding: 15px 10px; color: var(--toc-muted); font-size: 11px; line-height: 1.7; }
 #chatgpt-toc-sidebar .toc-footer { display: flex; align-items: center; gap: 7px; color: var(--toc-muted); font-size: 10px; padding: 16px 24px; border-top: 1px solid var(--toc-line); }
 #chatgpt-toc-sidebar .toc-status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--toc-accent); opacity: .65; }
-#chatgpt-toc-sidebar .toc-footer-mark { margin-left: auto; font-size: 9px; letter-spacing: 1px; }
 #chatgpt-toc-sidebar .toc-width-reset { margin-left: auto; border: 0; padding: 4px; background: transparent; color: var(--toc-accent); font: inherit; white-space: nowrap; cursor: pointer; }
 #chatgpt-toc-sidebar .toc-width-reset:disabled { color: var(--toc-muted); cursor: default; }
 #chatgpt-toc-sidebar :focus-visible, #chatgpt-toc-toggle:focus-visible { outline: 2px solid var(--toc-accent); outline-offset: 2px; }

@@ -4,7 +4,7 @@
 
 Shigang adds a collapsible table of contents to long ChatGPT conversations. Browse headings, jump to a section, and follow your reading position without scrolling back and forth.
 
-[Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) · [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj) · [Release v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3) · [Report an issue](https://github.com/quantai1314/gpt-toc-extension/issues)
+[Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) · [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj) · [Release v1.0.4](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.4) · [Report an issue](https://github.com/quantai1314/gpt-toc-extension/issues)
 
 ## Features
 
@@ -53,11 +53,15 @@ Thinking and tool activities within a turn do not become duplicate answers. Pend
 
 ## Release status
 
-As of **2026-10-20 (Asia/Shanghai)**, version **1.0.3** remains publicly listed in both stores. The English public listings now display both real light and dark screenshots submitted on 2026-10-07. Chrome shows Updated October 8, 2026; its two downloaded PNGs are byte-for-byte identical to the repository's 1280×800 submission assets. Edge shows Updated October 4, 2026; its JPEG images show the same content, with compression differences.
+Version **1.0.4** was prepared on **2026-10-20 (Asia/Shanghai)** with thinking/tool deduplication, retained history outlines, cached heading navigation and error recovery fixes.
 
-Chrome pending review and Edge In review describe the historical submission state on 2026-10-07. No developer dashboard was accessed in this verification, so the current formal review status and exact approval/publication dates remain unverified. Public screenshots and listing update dates are not dashboard review statuses. This check covers the English listings accessed, not all locales, regions or caches. See the [dated verification record](docs/store-listing-verification-2026-10-20.md) for source URLs, hashes and comparison details. Only documentation was updated; no extension code, permissions, version or ZIP package was changed or resubmitted.
+- [GitHub Release v1.0.4](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.4) provides the extension ZIP for manual loading.
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj): 1.0.4 was uploaded and submitted; the developer dashboard shows **In review**. Existing version 1.0.3 remains **Live**.
+- [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk): the public version remains 1.0.3. Browser tooling denied access to the developer dashboard, so 1.0.4 has not been uploaded or submitted there. Upload the same ZIP manually and submit it for review.
 
-The extension ZIP attached to the release is the same package submitted to both stores. SHA-256: `2dd46e628b566efe31a08213ea3bfa815041c3a2a38274389d3a6732ad325f99`.
+Package: `shigang-chatgpt-outline-1.0.4.zip`. SHA-256: `a235fd5dde3eff25b7571b1f7fb1da923c33351e4160d501e4b2f52b14240e65`. Package contents and versions were checked; no new permissions were added. All 59 Chrome browser regressions passed. These checks do not establish store approval or replace testing the updated extension in a real long conversation.
+
+Both public stores display the previously submitted real light/dark screenshots. The [dated verification record](docs/store-listing-verification-2026-10-20.md) documents the public 1.0.3 listings before this functional update, including source URLs, hashes and comparison details.
 
 ## Source and license
 

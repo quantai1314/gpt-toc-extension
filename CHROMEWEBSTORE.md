@@ -1,8 +1,20 @@
 # Chrome Web Store 发布材料
 
+## 1.0.4 更新准备（2026-10-20）
+
+- 版本：manifest.json、package.json、store-listings.json 均为 1.0.4。
+- 包：`dist/shigang-chatgpt-outline-1.0.4.zip`，33,759 字节；SHA-256：`a235fd5dde3eff25b7571b1f7fb1da923c33351e4160d501e4b2f52b14240e65`。
+- 内容：思考／工具活动去重、自动扫描与保留历史目录、旧标题补载定位、渲染错误重试及扩展上下文失效后的本地化回退。
+- 权限与 1.0.3 相同。ZIP 完整性、12 项文件白名单和源码逐项一致性检查通过，功能代码通过 59 项 Chrome 浏览器回归。
+- 最新中英文说明与 461 字符审核测试说明见 `store-listings.json`；Chrome 后台尚未保存本轮新文案。
+- **尚未上传或提交 Chrome 审核**：浏览器工具访问已有开发者后台地址时返回 Not allowed，无法继续操作。需在下列后台上传同一 ZIP、同步两种语言说明与审核备注，再提交审核。
+- [GitHub v1.0.4](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.4) 提供相同 ZIP。商店公开版仍为 1.0.3，不能将源码／GitHub 发布等同于商店更新。
+
+## 1.0.3 历史记录与公开核验
+
 截至 2026-10-20（Asia/Shanghai），**拾纲 Shigang 1.0.3 仍公开上架**。英文公开商品页显示版本 1.0.3、更新时间 2026-10-08；2026-10-07 提交的真实浅色、深色截图均已在公开画廊展示。两张下载 PNG 与仓库 1280×800 提交版逐字节一致，且与 README 的 1920×1080 版本为相同场景、不同裁剪。
 
-此前于 2026-10-04 提交版本审核；2026-10-07 提交截图资料更新时记录为待审核，并保留通过审核自动发布。该状态仅为历史记录；本次未访问开发者后台，最新正式审核状态、确切批准和生效日期未核实。不能将公开展示或 2026-10-08 的商品页更新时间等同于后台审核结论。验证仅覆盖本次英文公开商品页及其图片资源，不推定全部语言、地区或缓存已同步。
+此前于 2026-10-04 提交版本审核；2026-10-07 提交截图资料更新时记录为待审核，并保留通过审核自动发布。该状态仅为历史记录；该次公开截图核验未访问开发者后台，当时未核实最新正式审核状态、确切批准和生效日期。不能将公开展示或 2026-10-08 的商品页更新时间等同于后台审核结论。验证仅覆盖本次英文公开商品页及其图片资源，不推定全部语言、地区或缓存已同步。
 
 - 公开安装：[Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)。
 - GitHub 发行：[v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3)。
@@ -18,7 +30,7 @@
 
 - 英文名称：Shigang - ChatGPT Table of Contents。
 - 中文名称：拾纲 Shigang - ChatGPT 对话目录。
-- 版本：manifest.json 与 package.json 均为 1.0.3。
+- 当时版本：manifest.json 与 package.json 均为 1.0.3。
 - 默认语言：en；另支持 zh_CN。后台已识别两种语言，并分别保存商品说明。
 - 分类：工具；免费、公开、全部可选地区。
 - 支持：https://github.com/quantai1314/gpt-toc-extension/issues。
@@ -56,7 +68,7 @@
 
 ## 审核测试说明
 
-Chrome 后台已保存以下英文说明（490/500 字符）：
+1.0.3 提交时 Chrome 后台保存以下英文说明（490/500 字符）：
 
 No extension account/payment needed. Use your own ChatGPT account at https://chatgpt.com/. Request H2/H3 headings; open Outline (Chinese: 目录). Check prompt grouping, heading jumps, folding, streaming updates, chat switching, dark/light themes, formatted math and long-formula scrolling. Scroll to test reading follow; drag sidebar edge to resize; Auto width clears saved width. Only loaded messages are indexed. Screenshots run actual code with sample content and are labeled demo previews.
 

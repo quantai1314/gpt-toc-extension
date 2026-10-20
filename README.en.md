@@ -29,6 +29,8 @@ For manual installation:
 
 Node.js and npm are not needed for installation. Keep the extracted folder in place. When updating a manually loaded extension, reload it on the extensions page and then refresh ChatGPT. Disable an older copy if it creates a second outline panel.
 
+If an existing ChatGPT tab reports `Extension context invalidated` after reloading the extension, refresh that ChatGPT tab to replace its old content script. The localization helper falls back to bundled messages when its extension API becomes invalid and stops repeatedly calling that API. Previously recorded errors can be cleared after refreshing the affected tab.
+
 ## Screenshots
 
 Real usage in light and dark mode, using a Chinese sample conversation. The account avatar and left navigation were cropped out.
@@ -45,7 +47,9 @@ Download and extract the [repository source](https://github.com/quantai1314/gpt-
 
 Outline processing takes place locally in your browser. Shigang does not upload conversations or provide telemetry. Only your sidebar width preference is saved locally; messages, outline entries, reading position and folding state are not persisted. **Auto width** clears the saved width preference. See the [privacy policy](PRIVACY.md).
 
-Only messages currently loaded in the page are indexed. Responses without H1–H6 headings do not generate heading entries. Math is taken from the page's existing rendered structures; the extension does not download a math library. Changes to the ChatGPT website may affect compatibility.
+On the newer page layout, opening the outline automatically scans history to mount older turns, then restores your reading position. The page may briefly scroll during scanning. Reading or interacting with the conversation pauses the scan; use **Refresh** in the outline footer to retry. Cached outline entries survive virtualized message unloading, and clicking an older heading reloads its target. The cache lives only in page memory and is cleared when switching conversations. No backend conversation API or persistent chat storage is used. Messages the website fails to load may still be missing; older layouts index their currently loaded messages.
+
+Thinking and tool activities within a turn do not become duplicate answers. Pending and interrupted responses have distinct states, and updates retry automatically after an outline error. **Refresh** updates the outline and history scan without resending your prompt. Responses without H1–H6 headings do not generate heading entries. Math is taken from the page's existing rendered structures; the extension does not download a math library. Changes to the ChatGPT website may affect compatibility.
 
 ## Release status
 

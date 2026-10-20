@@ -30,6 +30,14 @@ class ChatGPTTOC {
     this.lastPath = location.pathname;
     this.conversationRoot = null;
     this.lastTOCSignature = null;
+    this.turnCache = new Map();
+    this.turnOrder = [];
+    this.historyScan = null;
+    this.historyScannedRoot = null;
+    this.historyStatus = null;
+    this.historyResumeTop = 0;
+    this.lastRefreshAt = 0;
+    this.navigation = null;
     this.preferredWidth = null;
     this.maxSidebarWidth = MAX_SIDEBAR_WIDTH;
     this.openRequested = false;
@@ -48,7 +56,7 @@ class ChatGPTTOC {
     // Add toggle button
     this.addToggleButton();
 
-    this.extractHeadings();
+    this.refreshOutline();
     
     // Start observing for content changes
     this.observeContentChanges();
@@ -85,10 +93,14 @@ class ChatGPTTOC {
       <div class="toc-content" id="toc-content" role="region" aria-label="${shigangMessage('navigationLabel')}">
         <div class="toc-loading">${shigangMessage('loading')}</div>
       </div>
-      <div class="toc-footer"><span class="toc-status-dot"></span> <span>${shigangMessage('following')}</span><button class="toc-width-reset" type="button" title="${shigangMessage('resetWidth')}">${shigangMessage('autoWidth')}</button></div>
+      <div class="toc-footer"><span class="toc-status-dot"></span> <span id="toc-status" role="status">${shigangMessage('following')}</span><button class="toc-refresh" type="button" title="${shigangMessage('refreshTitle')}">${shigangMessage('refreshOutline')}</button><button class="toc-width-reset" type="button" title="${shigangMessage('resetWidth')}">${shigangMessage('autoWidth')}</button></div>
     `;
     
     document.body.appendChild(this.sidebar);
+    this.sidebar.querySelector('.toc-refresh').addEventListener('click', () => {
+      this.historyScannedRoot = null;
+      this.refreshOutline();
+    });
     this.setupWidthControls();
     
     // Initialize theme
@@ -128,7 +140,7 @@ class ChatGPTTOC {
         if (!tocItem) return;
         const groupIndex = parseInt(tocItem.getAttribute('data-group'), 10);
         const headingIndex = parseInt(tocItem.getAttribute('data-heading'), 10);
-        const collapseKey = `${groupIndex}-${headingIndex}`;
+        const collapseKey = this.headingCollapseKey(groupIndex, headingIndex);
         if (this.collapsedHeadings.has(collapseKey)) {
           this.collapsedHeadings.delete(collapseKey);
         } else {
@@ -173,9 +185,10 @@ class ChatGPTTOC {
 
   toggleSidebar() {
     this.openRequested = !this.openRequested;
+    if (!this.openRequested && this.historyScan) this.historyScan.cancelled = true;
     if (this.openRequested) {
       this.followPaused = false;
-      this.extractHeadings();
+      this.refreshOutline();
     }
     this.updateLayout();
     this.syncReadingPosition();
@@ -268,6 +281,7 @@ class ChatGPTTOC {
       '[data-markdown-text-style="assistant-message"], [data-message-author-role="assistant"] .markdown, [data-user-message-bubble]'
     ) : []);
     for (const group of this.responseGroups) {
+      if (!group.messageElement?.isConnected) continue;
       let covered = false;
       for (const root of roots) {
         if (group.messageElement.contains(root)) { covered = true; break; }
@@ -367,7 +381,8 @@ class ChatGPTTOC {
   syncReadingPosition() {
     if (!this.isVisible || this.followPaused || !this.responseGroups.length) return;
     let readingTop = 80;
-    const firstMessage = this.responseGroups[0].messageElement;
+    const firstMessage = this.responseGroups.find(group => group.messageElement?.isConnected)?.messageElement;
+    if (!firstMessage) return;
     for (let parent = firstMessage.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
       if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY) && parent.scrollHeight > parent.clientHeight) {
         readingTop = Math.max(80, parent.getBoundingClientRect().top + 48);
@@ -381,6 +396,7 @@ class ChatGPTTOC {
       const targets = [{ element: group.promptElement || group.messageElement, headingIndex: null },
         ...group.headings.map((element, headingIndex) => ({ element, headingIndex }))];
       for (const target of targets) {
+        if (!target.element?.isConnected) continue;
         const rect = target.element.getBoundingClientRect();
         if (!rect.height) continue;
         const entry = { groupIndex, headingIndex: target.headingIndex, top: rect.top };
@@ -423,6 +439,13 @@ class ChatGPTTOC {
     if (this.lastPath !== location.pathname || this.conversationRoot !== root) {
       this.lastPath = location.pathname;
       this.conversationRoot = root;
+      if (this.historyScan) this.historyScan.cancelled = true;
+      if (this.navigation) this.navigation.cancelled = true;
+      this.turnCache.clear();
+      this.turnOrder = [];
+      this.historyScannedRoot = null;
+      this.historyStatus = null;
+      this.historyResumeTop = 0;
       this.collapsedGroups.clear();
       this.collapsedHeadings.clear();
       this.lastTOCSignature = null;
@@ -434,7 +457,15 @@ class ChatGPTTOC {
     const candidates = root ? Array.from(root.querySelectorAll(
       '[data-message-author-role="assistant"], [data-markdown-text-style="assistant-message"]'
     )) : [];
-    const messages = new Set(candidates.map(message =>
+    const turns = root ? Array.from(root.querySelectorAll('[data-turn-key]')) : [];
+    const turnSources = new Map(turns.map(turn => [turn, []]));
+    for (const candidate of candidates) {
+      const turn = candidate.closest('[data-turn-key]');
+      if (turnSources.has(turn) && candidate.closest('[data-message-author-role="assistant"], [data-chatgpt-selection-message-id], [data-content-search-unit-key$=":assistant"]')) {
+        turnSources.get(turn).push(candidate);
+      }
+    }
+    const messages = new Set(candidates.filter(message => !message.closest('[data-turn-key]')).map(message =>
       message.closest('[data-message-author-role="assistant"]') ||
       message.closest('[data-chatgpt-selection-message-id]') || message
     ));
@@ -459,29 +490,96 @@ class ChatGPTTOC {
       return found;
     };
     const groups = [];
-    messages.forEach(message => {
+    const makeGroup = (message, promptElement, sources, key, pending = false, failed = false) => {
       // Match the preceding prompt in DOM order, not by array index (one prompt
       // can have several assistant messages, and old turns may be virtualized).
-      const promptElement = findPrecedingPrompt(message);
       const promptHTML = promptElement ? this.renderInlineContent(promptElement, 200) : '';
       // Find headings within this specific message
-      const headings = Array.from(message.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+      const headings = Array.from(new Set(sources.flatMap(source => Array.from(source.querySelectorAll('h1, h2, h3, h4, h5, h6')))))
         .filter(heading => !heading.matches('.sr-only, [data-conversation-role]') &&
           !heading.closest('[hidden], [aria-hidden="true"]'));
       // Get a preview of the message content for the group title
-      const previewHTML = promptHTML ? '' : this.renderInlineContent(message, 50);
-      groups.push({
-        messageIndex: groups.length,
+      const previewHTML = promptHTML ? '' : sources.map(source => this.renderInlineContent(source, 50)).join('');
+      return {
+        key, pending, failed,
         messageElement: message,
         promptElement: promptElement,
         headings: headings,
         promptHTML,
         previewHTML,
         headingHTML: headings.map(heading => this.renderInlineContent(heading))
-      });
+      };
+    };
+    // A Work turn contains reasoning, tool activities and the final answer.
+    // Only the answer has a message identity / assistant search unit. Reasoning
+    // markdown outside those units must never become separate answer groups.
+    const scroller = turns.length ? this.findConversationScroller() : null;
+    // Page ranks survive virtual-window replacement; pixel positions do not.
+    // A newly fetched history prefix can rebase every rank, so shift cached
+    // ranks using an overlapping stable turn ID before updating the live ones.
+    const rankedTurns = turns.map(turn => ({ turn, rank: this.getTurnRank(turn) }));
+    const overlap = rankedTurns.find(({ turn, rank }) => Number.isInteger(rank) &&
+      Number.isInteger(this.turnCache.get(`turn:${turn.getAttribute('data-turn-key')}`)?.rank));
+    if (overlap) {
+      const shift = overlap.rank - this.turnCache.get(`turn:${overlap.turn.getAttribute('data-turn-key')}`).rank;
+      if (shift) for (const cached of this.turnCache.values()) {
+        if (Number.isInteger(cached.rank)) cached.rank += shift;
+      }
+    }
+    const liveTurns = turns.map(turn => {
+      const key = `turn:${turn.getAttribute('data-turn-key')}`;
+      const prompt = turn.querySelector('[data-message-author-role="user"], [data-user-message-bubble]');
+      const sources = turnSources.get(turn);
+      const state = turn.querySelector('[data-talvt-turn-state]')?.getAttribute('data-talvt-turn-state');
+      const failed = /error|fail|cancel|interrupt/.test(state || '') || !!turn.querySelector('[role="alert"], [data-testid="conversation-turn-error"]');
+      // An empty wrapper is a virtualized turn, rather than a deleted answer.
+      if (!prompt && !sources.length) {
+        const cached = this.turnCache.get(key);
+        return cached ? { ...cached, messageElement: turn } : null;
+      }
+      const group = makeGroup(sources[0] || turn, prompt, sources, key, !failed && state !== 'complete' && (!sources.length || !!state), failed);
+      group.rank = this.getTurnRank(turn);
+      group.position = scroller ? turn.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop : 0;
+      // During remount ChatGPT briefly hides the existing answer before its
+      // measured height settles. Do not replace a complete outline with zero
+      // headings merely because those same headings are temporarily hidden.
+      const cached = this.turnCache.get(key);
+      if (!group.headings.length && cached?.headings.length && sources.some(source =>
+        Array.from(source.querySelectorAll('h1,h2,h3,h4,h5,h6')).some(heading =>
+          !heading.matches('.sr-only, [data-conversation-role]') && heading.closest('[hidden], [aria-hidden="true"]')))) {
+        return { ...cached, messageElement: turn, promptElement: prompt, rank: group.rank, position: group.position };
+      }
+      // Store only outline data, never detached copies of an entire transcript.
+      this.turnCache.set(key, { ...group, messageElement: null, promptElement: null,
+        headings: group.headings.map(heading => document.createElement(heading.tagName)) });
+      return group;
+    }).filter(Boolean);
+    // Merge newly loaded older turns before their known successors. Stable keys
+    // survive DOM replacement, unloading and regeneration within the same turn.
+    const order = [...this.turnOrder];
+    let nextKey = null;
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const key = `turn:${turns[i].getAttribute('data-turn-key')}`;
+      const previousIndex = order.indexOf(key);
+      if (previousIndex >= 0) order.splice(previousIndex, 1);
+      const nextIndex = nextKey === null ? -1 : order.indexOf(nextKey);
+      order.splice(nextIndex < 0 ? order.length : nextIndex, 0, key);
+      nextKey = key;
+    }
+    if (order.every(key => Number.isInteger(this.turnCache.get(key)?.rank))) {
+      order.sort((a, b) => this.turnCache.get(a).rank - this.turnCache.get(b).rank);
+    }
+    this.turnOrder = order;
+    const liveByKey = new Map(liveTurns.map(group => [group.key, group]));
+    for (const key of order) {
+      const group = liveByKey.get(key) || this.turnCache.get(key);
+      if (group) groups.push(group);
+    }
+    messages.forEach(message => {
+      groups.push(makeGroup(message, findPrecedingPrompt(message), [message], message));
     });
     const signature = JSON.stringify(groups.map(group => [
-      group.promptHTML, group.previewHTML,
+      typeof group.key === 'string' ? group.key : '', group.pending, group.failed, group.promptHTML, group.previewHTML,
       group.headings.map((heading, i) => [heading.tagName, group.headingHTML[i]])
     ]));
     const sameTargets = groups.length === this.responseGroups.length && groups.every((group, i) => {
@@ -498,8 +596,131 @@ class ChatGPTTOC {
     // the same elements, and the ResizeObserver already covers their size changes.
     if (!sameTargets) this.refreshLayoutTargets();
     if (sameTargets && signature === this.lastTOCSignature) return;
-    this.lastTOCSignature = signature;
     this.updateTOC();
+    // Commit after rendering: an exception must not suppress the next retry.
+    this.lastTOCSignature = signature;
+  }
+
+  refreshOutline() {
+    try {
+      this.extractHeadings();
+      this.lastRefreshAt = Date.now();
+      this.setStatus(this.historyStatus);
+      if (this.openRequested && this.historyScannedRoot !== this.conversationRoot &&
+          !this.historyScan && !this.navigation && this.turnCache.size && !this.responseGroups.some(group => group.pending)) {
+        void this.loadHistory();
+      }
+    } catch (error) {
+      this.lastTOCSignature = null;
+      this.setStatus('updateFailed');
+      console.warn('Shigang: outline update failed; will retry.', error);
+    }
+  }
+
+  setStatus(key = null) {
+    const status = this.sidebar.querySelector('#toc-status');
+    const text = shigangMessage(key || 'following');
+    if (status.textContent !== text) status.textContent = text;
+  }
+
+  findConversationScroller() {
+    const root = this.conversationRoot;
+    const start = root?.querySelector('[data-turn-key], [data-message-author-role], [data-markdown-text-style]') || root;
+    for (let parent = start; parent && parent !== document.body; parent = parent.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY) && parent.scrollHeight > parent.clientHeight + 1) return parent;
+    }
+    return document.scrollingElement;
+  }
+
+  getTurnRank(turn) {
+    const value = turn.querySelector('[data-content-search-turn-key]')?.getAttribute('data-content-search-turn-key');
+    const match = /^fallback-turn-(\d+)$/.exec(value || '');
+    return match ? Number(match[1]) : null;
+  }
+
+  async loadHistory() {
+    if (this.historyScan || this.navigation || !this.conversationRoot) return;
+    const root = this.conversationRoot;
+    const path = location.pathname;
+    const scroller = this.findConversationScroller();
+    if (!scroller?.clientHeight) return;
+    const scan = { cancelled: false, userInterrupted: false };
+    this.historyScan = scan;
+    this.historyStatus = 'loadingHistory';
+    this.setStatus(this.historyStatus);
+    const top = scroller.scrollTop;
+    const bounds = scroller.getBoundingClientRect();
+    const anchor = Array.from(root.querySelectorAll('h1,h2,h3,h4,h5,h6,[data-user-message-bubble]'))
+      .find(element => element.getBoundingClientRect().height && element.getBoundingClientRect().top >= bounds.top);
+    const anchorTop = anchor?.getBoundingClientRect().top;
+    const anchorGroup = this.responseGroups.find(group => group.promptElement === anchor || group.headings.includes(anchor));
+    const anchorHeading = anchorGroup?.headings.indexOf(anchor) ?? -1;
+    const valid = () => !scan.cancelled && root === this.conversationRoot && path === location.pathname && this.openRequested;
+    const interrupt = event => {
+      if (event.target instanceof Element && event.target.closest('#chatgpt-toc-sidebar, #chatgpt-toc-toggle')) return;
+      if (event.type === 'keydown' && !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+      scan.cancelled = true;
+      scan.userInterrupted = true;
+    };
+    const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+    for (const type of events) document.addEventListener(type, interrupt, { capture: true, passive: true });
+    const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+    let complete = false;
+    let resumeTop = this.historyResumeTop;
+    try {
+      // Walk the actual transcript so ChatGPT mounts virtualized/lazy turns.
+      // No backend API, credentials or persistent chat storage are involved.
+      scroller.scrollTo({ top: resumeTop, behavior: 'instant' });
+      const deadline = Date.now() + 45000;
+      let bottomStable = 0;
+      let previousSize = -1;
+      for (let step = 0; step < 180 && Date.now() < deadline && valid(); step++) {
+        await pause(step === 0 ? 1000 : 200);
+        if (!valid()) break;
+        this.extractHeadings();
+        const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+        bottomStable = atBottom && this.turnCache.size === previousSize ? bottomStable + 1 : 0;
+        previousSize = this.turnCache.size;
+        if (bottomStable >= 4) { complete = true; break; }
+        // Skip the already mounted portion of a very long answer, but never
+        // skip an empty turn placeholder that still needs to be mounted.
+        let nextTop = scroller.scrollTop + scroller.clientHeight * 0.8;
+        const viewportTop = scroller.getBoundingClientRect().top;
+        for (const turn of root.querySelectorAll('[data-turn-key]')) {
+          const rect = turn.getBoundingClientRect();
+          if (rect.top <= viewportTop + scroller.clientHeight && rect.bottom > viewportTop &&
+              turn.querySelector('[data-user-message-bubble], [data-message-author-role], [data-markdown-text-style]')) {
+            nextTop = Math.max(nextTop, scroller.scrollTop + rect.bottom - viewportTop - 24);
+          }
+        }
+        scroller.scrollTo({ top: nextTop, behavior: 'instant' });
+        resumeTop = scroller.scrollTop;
+      }
+    } catch (error) {
+      console.warn('Shigang: history scan interrupted.', error);
+    } finally {
+      if (root === this.conversationRoot && path === location.pathname) {
+        // User interaction wins: never undo a deliberate scroll/click.
+        if (!scan.userInterrupted) {
+          scroller.scrollTo({ top, behavior: 'instant' });
+          await pause(200);
+          if (root === this.conversationRoot && path === location.pathname && !scan.userInterrupted) {
+            this.refreshOutline();
+            const group = this.responseGroups.find(group => group.key === anchorGroup?.key);
+            const restoredAnchor = anchor?.isConnected ? anchor : anchorHeading >= 0 ? group?.headings[anchorHeading] : group?.promptElement;
+            if (root === this.conversationRoot && restoredAnchor?.isConnected && restoredAnchor.getClientRects().length) scroller.scrollTop += restoredAnchor.getBoundingClientRect().top - anchorTop;
+          }
+        }
+        if (root === this.conversationRoot && path === location.pathname) {
+          this.historyScannedRoot = root;
+          this.historyStatus = complete ? null : 'historyPartial';
+          this.historyResumeTop = complete ? 0 : resumeTop;
+        }
+      }
+      for (const type of events) document.removeEventListener(type, interrupt, true);
+      this.historyScan = null;
+      this.refreshOutline();
+    }
   }
 
   renderInlineContent(source, maxLength = Infinity) {
@@ -573,7 +794,7 @@ class ChatGPTTOC {
     }
     let tocHTML = '';
     this.responseGroups.forEach((group, groupIndex) => {
-      const isGroupCollapsed = this.collapsedGroups.has(groupIndex);
+      const isGroupCollapsed = this.collapsedGroups.has(group.key);
       tocHTML += `
         <div class="toc-group-header toc-group-header-clickable" role="button" tabindex="0" aria-expanded="${!isGroupCollapsed}" data-group="${groupIndex}">
           <div class="toc-group-text">
@@ -584,7 +805,8 @@ class ChatGPTTOC {
         </div>
       `;
       // Render headings as a nested tree
-      tocHTML += `<div class="toc-group-content" data-group="${groupIndex}" style="display:${isGroupCollapsed ? 'none' : 'block'};">${group.headings.length ? this.renderHeadingsTree(group.headings, groupIndex) : `<div class="toc-empty">${shigangMessage('emptyHeadings')}</div>`}</div>`;
+      const emptyKey = group.failed ? 'responseFailed' : group.pending ? 'responsePending' : 'emptyHeadings';
+      tocHTML += `<div class="toc-group-content" data-group="${groupIndex}" style="display:${isGroupCollapsed ? 'none' : 'block'};">${group.headings.length ? this.renderHeadingsTree(group.headings, groupIndex) : `<div class="toc-empty">${shigangMessage(emptyKey)}</div>`}</div>`;
       if (groupIndex < this.responseGroups.length - 1) {
         tocHTML += '<div class="toc-group-separator"></div>';
       }
@@ -620,7 +842,7 @@ class ChatGPTTOC {
     const renderNodes = (nodes, depth = 0) => {
       let html = '';
       nodes.forEach((node) => {
-        const collapseKey = `${groupIndex}-${node.index}`;
+        const collapseKey = this.headingCollapseKey(groupIndex, node.index);
         const isCollapsed = this.collapsedHeadings.has(collapseKey);
         const hasSub = node.children.length > 0;
         html += `<div class="toc-item toc-h${node.level}${isCollapsed ? ' collapsed' : ''}" role="button" tabindex="0" data-group="${groupIndex}" data-heading="${node.index}" style="--toc-depth: ${depth};">
@@ -645,20 +867,15 @@ class ChatGPTTOC {
   }
 
   scrollToResponse(groupIndex) {
-    if (this.responseGroups[groupIndex] && this.responseGroups[groupIndex].messageElement) {
-      const message = this.responseGroups[groupIndex].promptElement ? this.responseGroups[groupIndex].promptElement : this.responseGroups[groupIndex].messageElement;
-      message.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
+    void this.navigateToGroup(groupIndex);
   }
 
   toggleGroupCollapse(groupIndex) {
-    if (this.collapsedGroups.has(groupIndex)) {
-      this.collapsedGroups.delete(groupIndex);
+    const key = this.responseGroups[groupIndex]?.key;
+    if (this.collapsedGroups.has(key)) {
+      this.collapsedGroups.delete(key);
     } else {
-      this.collapsedGroups.add(groupIndex);
+      this.collapsedGroups.add(key);
     }
     
     // Update the UI
@@ -667,7 +884,7 @@ class ChatGPTTOC {
     const collapseIcon = groupHeader?.querySelector('.toc-group-collapse-icon');
     
     if (groupContent && collapseIcon) {
-      const isCollapsed = this.collapsedGroups.has(groupIndex);
+      const isCollapsed = this.collapsedGroups.has(key);
       groupContent.style.display = isCollapsed ? 'none' : 'block';
       collapseIcon.innerHTML = isCollapsed ? this.rightArrowSVG : this.downArrowSVG;
       groupHeader.setAttribute('aria-expanded', String(!isCollapsed));
@@ -675,15 +892,125 @@ class ChatGPTTOC {
   }
 
   scrollToHeading(groupIndex, headingIndex) {
-    if (this.responseGroups[groupIndex] && this.responseGroups[groupIndex].headings[headingIndex]) {
-      const heading = this.responseGroups[groupIndex].headings[headingIndex];
-      
-      // Smooth scroll to the heading
-      heading.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-      
+    void this.navigateToGroup(groupIndex, headingIndex);
+  }
+
+  headingCollapseKey(groupIndex, headingIndex) {
+    const key = this.responseGroups[groupIndex]?.key;
+    return `${typeof key === 'string' ? key : groupIndex}-${headingIndex}`;
+  }
+
+  async navigateToGroup(groupIndex, headingIndex = null) {
+    const original = this.responseGroups[groupIndex];
+    if (!original) return;
+    if (this.navigation) this.navigation.cancelled = true;
+    const navigation = { cancelled: false };
+    this.navigation = navigation;
+    if (this.historyScan) {
+      this.historyScan.cancelled = true;
+      this.historyScan.userInterrupted = true;
+    }
+    const root = this.conversationRoot;
+    const path = location.pathname;
+    const targetOf = group => headingIndex === null ? group?.promptElement || group?.messageElement : group?.headings[headingIndex];
+    const valid = () => this.navigation === navigation && !navigation.cancelled &&
+      root === this.conversationRoot && path === location.pathname;
+    const interrupt = event => {
+      if (event.target instanceof Element && event.target.closest('#chatgpt-toc-sidebar, #chatgpt-toc-toggle')) return;
+      if (event.type === 'keydown' && !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+      navigation.cancelled = true;
+    };
+    const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+    for (const type of events) document.addEventListener(type, interrupt, { capture: true, passive: true });
+    try {
+      // Preserve the simple path for older layouts without virtual turn IDs.
+      if (typeof original.key !== 'string') {
+        targetOf(original)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      this.historyScannedRoot = root;
+      const scroller = this.findConversationScroller();
+      let low = 0;
+      let high = scroller.scrollHeight - scroller.clientHeight;
+      let stable = 0;
+      let lastTarget = null;
+      let seeded = false;
+      let fallbackTop = 0;
+      // Mounting a turn changes measured heights and may restore an old scroll
+      // anchor asynchronously. Reacquire the live heading and confirm alignment
+      // across several frames instead of firing one smooth scroll at stale DOM.
+      for (let attempt = 0; attempt < 60 && valid(); attempt++) {
+        this.refreshOutline();
+        if (!valid()) return;
+        const group = this.responseGroups.find(group => group.key === original.key);
+        const target = targetOf(group);
+        const ready = target?.isConnected && target.getBoundingClientRect().height > 0 &&
+          !target.closest('[hidden], [aria-hidden="true"]') &&
+          (headingIndex !== null || group.promptElement);
+        const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+        if (ready) {
+          const desired = Math.max(0, Math.min(maxTop,
+            scroller.scrollTop + target.getBoundingClientRect().top - scroller.getBoundingClientRect().top));
+          if (Math.abs(scroller.scrollTop - desired) > 2) {
+            scroller.scrollTo({ top: desired, behavior: 'instant' });
+            stable = 0;
+          } else {
+            stable = target === lastTarget ? stable + 1 : 1;
+            if (stable >= 5) return;
+          }
+          lastTarget = target;
+        } else {
+          stable = 0;
+          const turn = Array.from(root.querySelectorAll('[data-turn-key]')).find(turn => `turn:${turn.getAttribute('data-turn-key')}` === original.key);
+          if (turn) {
+            const desired = Math.max(0, Math.min(maxTop,
+              scroller.scrollTop + turn.getBoundingClientRect().top - scroller.getBoundingClientRect().top));
+            if (Math.abs(scroller.scrollTop - desired) > 2) scroller.scrollTo({ top: desired, behavior: 'instant' });
+          } else if (!seeded) {
+            // The cached coordinate is only a first probe. History prepending
+            // and height estimation can make it point to a completely different turn.
+            scroller.scrollTo({ top: Math.min(maxTop, group?.position || original.position || 0), behavior: 'instant' });
+            seeded = true;
+          } else {
+            const ranked = Array.from(root.querySelectorAll('[data-turn-key]'), turn => ({
+              rank: this.getTurnRank(turn),
+              top: scroller.scrollTop + turn.getBoundingClientRect().top - scroller.getBoundingClientRect().top,
+              bottom: scroller.scrollTop + turn.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top
+            })).filter(turn => Number.isInteger(turn.rank));
+            const rank = group?.rank ?? original.rank;
+            high = Math.min(high, maxTop);
+            if (Number.isInteger(rank) && ranked.length) {
+              const first = ranked.reduce((a, b) => a.rank < b.rank ? a : b);
+              const last = ranked.reduce((a, b) => a.rank > b.rank ? a : b);
+              // Use measured turn boundaries, not the current scroll offset:
+              // the host may have moved the viewport since mounting this window.
+              if (rank < first.rank) {
+                high = Math.min(high, Math.max(0, first.top));
+                if (low >= high) low = 0;
+              } else if (rank > last.rank) {
+                low = Math.max(low, Math.min(maxTop, last.bottom));
+                if (high <= low) high = maxTop;
+              }
+              // Within the requested rank range, give the renderer time to mount it.
+              else { await new Promise(resolve => setTimeout(resolve, 120)); continue; }
+              scroller.scrollTo({ top: (low + high) / 2, behavior: 'instant' });
+            } else {
+              // Older markup may have stable turn IDs but no rank markers.
+              // Search rendered windows without assuming cached offsets are current.
+              scroller.scrollTo({ top: Math.min(maxTop, fallbackTop), behavior: 'instant' });
+              fallbackTop += scroller.clientHeight * 0.8;
+            }
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+      if (valid()) this.setStatus('navigationFailed');
+    } catch (error) {
+      this.setStatus('navigationFailed');
+      console.warn('Shigang: navigation could not load the target.', error);
+    } finally {
+      for (const type of events) document.removeEventListener(type, interrupt, true);
+      if (this.navigation === navigation) this.navigation = null;
     }
   }
 
@@ -699,7 +1026,7 @@ class ChatGPTTOC {
       if (!changed || refreshTimer !== null) return;
       refreshTimer = setTimeout(() => {
         refreshTimer = null;
-        this.extractHeadings();
+        this.refreshOutline();
       }, 200);
     });
     this.contentObserver.observe(document.body, {
@@ -709,12 +1036,18 @@ class ChatGPTTOC {
       attributes: true,
       attributeFilter: ['data-message-author-role', 'data-markdown-text-style',
         'data-user-message-bubble', 'data-chatgpt-selection-message-id', 'hidden', 'aria-hidden',
+        'data-turn-key', 'data-content-search-unit-key', 'data-content-search-turn-key',
+        'data-talvt-turn-state', 'data-markdown-text-tone', 'inert',
         'class', 'style', 'data-math-source', 'mathvariant', 'displaystyle']
     });
     // SPA navigation can change the URL without changing the rendered text.
     setInterval(() => {
-      if (this.lastPath !== location.pathname) this.extractHeadings();
+      if (this.lastPath !== location.pathname || (this.openRequested && Date.now() - this.lastRefreshAt >= 1500)) this.refreshOutline();
     }, 1000);
+    window.addEventListener('pageshow', () => this.refreshOutline());
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this.refreshOutline();
+    });
   }
 
   detectDarkMode() {

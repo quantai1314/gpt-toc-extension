@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
   const assert = (condition, message) => { if (!condition) throw new Error(message); };
   const headings = () => Array.from(document.querySelectorAll('.toc-text'), e => e.textContent);
-  const waitFor = async predicate => {
-    for (let i = 0; i < 60; i++) {
+  const waitFor = async (predicate, attempts = 60) => {
+    for (let i = 0; i < attempts; i++) {
       if (predicate()) return;
       await pause(50);
     }
@@ -361,6 +361,281 @@ document.addEventListener('DOMContentLoaded', async () => {
       assert(!isOpen(), 'Layout change reopened explicitly closed sidebar');
       toggle.click();
       await waitFor(isOpen);
+    });
+    const toc = globalThis.__shigangTOCInstance;
+    document.getElementById('toc-close').click();
+    let fixtureNumber = 0;
+    const answer = (id, title) => `<div data-content-search-unit-key="${id}:assistant"><div data-chatgpt-selection-message-id="${id}"><div data-markdown-text-style="assistant-message"><h2>${title}</h2></div></div></div>`;
+    const turn = (id, title, extra = '') => `<div data-turn-key="${id}"><div data-talvt-turn-state="complete"><div data-user-message-bubble>Prompt ${id}</div>${extra}${answer(id, title)}</div></div>`;
+    const resetTurns = html => {
+      history.replaceState({}, '', `regression-turns-${++fixtureNumber}`);
+      main.innerHTML = html;
+      main.scrollTop = 0;
+      toc.refreshOutline();
+    };
+    await check('Thinking and tool activities produce one pending turn, with no reasoning headings', async () => {
+      resetTurns('<div data-turn-key="thinking"><div data-talvt-turn-state="running"><div data-user-message-bubble>Thinking prompt</div><div data-markdown-text-style="assistant-message" data-markdown-text-tone="primary"><h2>Reasoning heading</h2></div><div data-markdown-text-style="assistant-message" data-markdown-text-tone="tertiary">Tool activity</div><div data-markdown-text-style="assistant-message">More reasoning</div></div></div>');
+      await waitFor(() => document.querySelector('.toc-empty')?.textContent === 'Thinking or generating a response…');
+      assert(toc.responseGroups.length === 1 && headings().length === 0, 'Thinking fragments counted as answers');
+    });
+    await check('Final answer replaces pending state and expanding reasoning never duplicates it', async () => {
+      const state = main.querySelector('[data-talvt-turn-state]');
+      state.insertAdjacentHTML('beforeend', answer('final', 'Final heading'));
+      state.setAttribute('data-talvt-turn-state', 'complete');
+      await waitFor(() => headings().join() === 'Final heading');
+      state.insertAdjacentHTML('afterbegin', '<div data-markdown-text-style="assistant-message"><h3>Expanded reasoning</h3></div>');
+      await pause(300);
+      assert(toc.responseGroups.length === 1 && headings().join() === 'Final heading', 'Expanded thinking leaked into answer outline');
+    });
+    await check('Multiple final markdown blocks in one Work turn do not duplicate answers', async () => {
+      main.querySelector('[data-chatgpt-selection-message-id]').insertAdjacentHTML('beforeend', '<div data-markdown-text-style="assistant-message"><h3>Second final block</h3></div>');
+      await waitFor(() => headings().includes('Second final block'));
+      assert(toc.responseGroups.length === 1 && headings().length === 2, 'Answer blocks duplicated');
+    });
+    await check('An interrupted response recovers automatically when its retry arrives', async () => {
+      resetTurns('<div data-turn-key="retry"><div data-talvt-turn-state="error"><div data-user-message-bubble>Retry prompt</div><div role="alert">Temporary error</div></div></div>');
+      await waitFor(() => document.querySelector('.toc-empty')?.textContent === 'Response interrupted · waiting for a retry');
+      main.firstElementChild.innerHTML = `<div data-talvt-turn-state="complete"><div data-user-message-bubble>Retry prompt</div>${answer('retry-message', 'Recovered answer')}</div>`;
+      await waitFor(() => headings().join() === 'Recovered answer');
+      assert(toc.responseGroups.length === 1, 'Retry created duplicate group');
+    });
+    await check('A render exception is retried without requiring close and reopen', async () => {
+      const render = toc.updateTOC;
+      let failures = 0;
+      toc.updateTOC = function () {
+        if (!failures++) throw new Error('Simulated one-time render failure');
+        return render.call(this);
+      };
+      try {
+        // Keep the sidebar open so the watchdog also catches missing mutations.
+        toc.openRequested = true;
+        toc.historyScannedRoot = main;
+        main.querySelector('h2').textContent = 'Recovered from render error';
+        await waitFor(() => headings().join() === 'Recovered from render error');
+        assert(failures >= 2, 'Failed rendering was never retried');
+      } finally {
+        toc.updateTOC = render;
+        toc.openRequested = false;
+      }
+    });
+    await check('Virtualized turn content retains its outline and prompt after unloading', async () => {
+      resetTurns(turn('older', 'Older heading') + turn('newer', 'Newer heading'));
+      await waitFor(() => headings().length === 2);
+      main.firstElementChild.replaceChildren();
+      await pause(350);
+      assert(headings().join('|') === 'Older heading|Newer heading', 'Unloading deleted the old outline');
+      assert(document.querySelector('.toc-group-prompt').textContent === 'Prompt older', 'Cached prompt lost');
+      assert(Array.from(toc.turnCache.values()).every(group => !group.messageElement && !group.promptElement), 'Cache holds detached transcript nodes');
+    });
+    await check('Loading earlier history preserves chronological order and collapse choices', async () => {
+      document.querySelector('.toc-group-collapse-icon').click();
+      main.insertAdjacentHTML('afterbegin', turn('oldest', 'Oldest heading'));
+      await waitFor(() => headings().length === 3);
+      assert(headings().join('|') === 'Oldest heading|Older heading|Newer heading', 'Prepended history is out of order');
+      assert(document.querySelectorAll('.toc-group-content')[1].style.display === 'none', 'History prepend moved a collapsed choice to another turn');
+    });
+    await check('Cached heading navigation reloads the turn before scrolling to a live heading', async () => {
+      const oldTurn = main.querySelector('[data-turn-key="older"]');
+      Array.from(main.children).forEach(wrapper => { wrapper.style.height = '600px'; });
+      setTimeout(() => { oldTurn.innerHTML = `<div data-user-message-bubble>Prompt older</div>${answer('older', 'Older heading')}`; }, 150);
+      await toc.navigateToGroup(toc.responseGroups.findIndex(group => group.key === 'turn:older'), 0);
+      assert(Math.abs(oldTurn.querySelector('h2').getBoundingClientRect().top - main.getBoundingClientRect().top) < 3, 'Cached heading never aligned to the remounted target');
+    });
+    await check('Regenerating a turn replaces its headings rather than retaining stale ones', async () => {
+      main.querySelector('[data-turn-key="newer"]').innerHTML = `<div data-user-message-bubble>Prompt newer</div>${answer('regenerated-id', 'Regenerated heading')}`;
+      await waitFor(() => headings().includes('Regenerated heading'));
+      assert(!headings().includes('Newer heading') && toc.responseGroups.length === 3, 'Old regenerated response retained');
+    });
+    await check('Conversation navigation clears cached unloaded turns', async () => {
+      resetTurns(turn('different-chat', 'Different chat only'));
+      assert(headings().join() === 'Different chat only', 'History cache leaked into another conversation');
+    });
+    const virtualCount = 12;
+    let virtualize = null;
+    const prepareVirtualHistory = () => {
+      resetTurns(Array.from({ length: virtualCount }, (_, i) => `<div data-turn-key="virtual-${i}" style="height:600px;flex-shrink:0"></div>`).join(''));
+      virtualize = () => {
+        const current = Math.floor(main.scrollTop / 600);
+        Array.from(main.children).forEach((wrapper, i) => {
+          const mounted = Math.abs(i - current) <= 1;
+          if (mounted && !wrapper.firstElementChild) wrapper.innerHTML = `<div data-talvt-turn-state="complete"><div data-user-message-bubble>Virtual prompt ${i}</div>${answer(`virtual-message-${i}`, `Virtual heading ${i}`)}</div>`;
+          if (!mounted && wrapper.firstElementChild) wrapper.replaceChildren();
+        });
+      };
+      main.addEventListener('scroll', virtualize);
+      main.scrollTop = 6000;
+      virtualize();
+      toc.refreshOutline();
+    };
+    await check('Opening automatically scans virtual history and restores the reading position', async () => {
+      prepareVirtualHistory();
+      const originalTop = main.scrollTop;
+      toggle.click();
+      await waitFor(() => toc.historyScan, 80);
+      await waitFor(() => !toc.historyScan, 300);
+      assert(toc.responseGroups.length === virtualCount, `Loaded only ${toc.responseGroups.length} virtual turns`);
+      assert(headings().join('|') === Array.from({ length: virtualCount }, (_, i) => `Virtual heading ${i}`).join('|'), 'History order incomplete');
+      assert(Math.abs(main.scrollTop - originalTop) < 2, 'History scan did not restore reading position');
+      assert(!toc.historyStatus, 'Finished scan incorrectly marked partial');
+    });
+    await check('A real virtualized heading click mounts and navigates to older content', async () => {
+      await toc.navigateToGroup(0, 0);
+      await pause(150);
+      assert(main.scrollTop < 100, 'Click failed to reach older history');
+      assert(main.querySelector('[data-turn-key="virtual-0"] h2')?.isConnected, 'Navigated to a detached heading');
+    });
+    await check('A user scroll cancels history scanning without restoring over their new position', async () => {
+      const scan = toc.loadHistory();
+      await pause(1150);
+      main.dispatchEvent(new WheelEvent('wheel', { deltaY: 500, bubbles: true }));
+      main.scrollTop = 3000;
+      await scan;
+      assert(Math.abs(main.scrollTop - 3000) < 2, 'Scan overrode user scrolling');
+      assert(toc.historyStatus === 'historyPartial', 'Interrupted scan has no recovery status');
+      assert(toc.historyResumeTop > 0, 'Paused scan lost its progress');
+      await pause(1100);
+      assert(!toc.historyScan, 'Watchdog restarted a user-cancelled scan');
+    });
+    await check('The refresh button retries a paused history scan without closing the sidebar', async () => {
+      document.querySelector('.toc-refresh').click();
+      await waitFor(() => toc.historyScan);
+      await waitFor(() => !toc.historyScan, 300);
+      assert(!toc.historyStatus && isOpen(), 'Refresh did not complete history scan in the open sidebar');
+    });
+    main.removeEventListener('scroll', virtualize);
+    document.getElementById('toc-close').click();
+    const windowCount = 16;
+    let rankOffset = 0;
+    let prefixHeight = 0;
+    let mountedRange = '';
+    let windowHost;
+    const renderWindow = () => {
+      const current = Math.max(0, Math.min(windowCount - 1, Math.floor((main.scrollTop - prefixHeight) / 600)));
+      const start = Math.max(0, current - 1);
+      const end = Math.min(windowCount - 1, current + 2);
+      const range = `${start}:${end}:${prefixHeight}:${rankOffset}`;
+      if (range === mountedRange) return;
+      mountedRange = range;
+      windowHost.style.height = `${prefixHeight + windowCount * 600}px`;
+      windowHost.innerHTML = Array.from({ length: end - start + 1 }, (_, j) => {
+        const i = start + j;
+        return `<div data-turn-key="window-${i}" style="position:absolute;top:${prefixHeight + i * 600}px;height:600px;width:100%"><div data-content-search-turn-key="fallback-turn-${rankOffset + i}"><div data-talvt-turn-state="complete"><div data-user-message-bubble>Window prompt ${i}</div>${answer(`window-message-${i}`, `Window heading ${i}`)}</div></div></div>`;
+      }).join('');
+    };
+    const prepareMovingWindow = () => {
+      toc.openRequested = false;
+      mountedRange = '';
+      rankOffset = 0;
+      prefixHeight = 0;
+      resetTurns('<div id="virtual-window" style="position:relative;height:9600px"></div>');
+      windowHost = main.firstElementChild;
+      main.addEventListener('scroll', renderWindow);
+      main.scrollTop = 7200;
+      renderWindow();
+      toc.refreshOutline();
+      main.scrollTop = 0;
+      renderWindow();
+      toc.refreshOutline();
+      toc.historyScannedRoot = main;
+    };
+    const windowGroup = index => toc.responseGroups.findIndex(group => group.key === `turn:window-${index}`);
+    const windowTarget = index => main.querySelector(`[data-turn-key="window-${index}"] h2`);
+    const alignedWindow = index => windowTarget(index)?.isConnected && Math.abs(windowTarget(index).getBoundingClientRect().top - main.getBoundingClientRect().top) < 3;
+    await check('Completely removed virtual windows keep page rank order rather than discovery order', async () => {
+      prepareMovingWindow();
+      assert(toc.responseGroups.map(group => group.rank).join() === '0,1,2,11,12,13,14', 'Replaced virtual windows rotated chronological order');
+    });
+    await check('A stale pixel coordinate is corrected by finding the actual ranked virtual window', async () => {
+      toc.turnCache.get('turn:window-12').position = 120;
+      const trace = [];
+      const refresh = toc.refreshOutline;
+      toc.refreshOutline = function () {
+        refresh.call(this);
+        trace.push({ top: main.scrollTop, rank: this.turnCache.get('turn:window-12')?.rank,
+          mounted: Array.from(main.querySelectorAll('[data-content-search-turn-key]'), e => e.getAttribute('data-content-search-turn-key')) });
+      };
+      try { await toc.navigateToGroup(windowGroup(12), 0); }
+      finally { toc.refreshOutline = refresh; }
+      assert(alignedWindow(12), `Stale cached pixels could not locate the requested turn: ${JSON.stringify([...trace.slice(0,20), ...trace.slice(-4)])}`);
+      const position = main.scrollTop;
+      await pause(500);
+      assert(alignedWindow(12) && Math.abs(main.scrollTop - position) < 3, 'Target jumped back after navigation completed');
+    });
+    await check('Delayed height measurement and scroll-anchor restoration do not undo a heading jump', async () => {
+      const target = windowTarget(12);
+      const jump = toc.navigateToGroup(windowGroup(12), 0);
+      setTimeout(() => {
+        prefixHeight = 900;
+        renderWindow();
+        // Model the host restoring its old anchor after measuring a new window.
+        main.scrollTop = 0;
+      }, 250);
+      await jump;
+      assert(alignedWindow(12), 'Host layout restoration won over the final heading target');
+      assert(windowTarget(12) !== target, 'Fixture did not replace the target DOM');
+    });
+    await check('Temporarily hidden remount content does not erase cached headings', async () => {
+      const source = main.querySelector('[data-turn-key="window-12"] [data-chatgpt-selection-message-id]');
+      source.hidden = true;
+      toc.refreshOutline();
+      assert(toc.responseGroups[windowGroup(12)].headingHTML.length === 1, 'Hidden remount overwrote a complete outline with zero headings');
+      const jump = toc.navigateToGroup(windowGroup(12), 0);
+      setTimeout(() => { source.hidden = false; }, 250);
+      await jump;
+      assert(alignedWindow(12), 'Did not wait for the hidden heading to become ready');
+    });
+    await check('History prefix rebasing shifts cached ranks using a stable overlapping turn', async () => {
+      const cachedRank = toc.turnCache.get('turn:window-0').rank;
+      rankOffset = 20;
+      renderWindow();
+      toc.refreshOutline();
+      assert(toc.turnCache.get('turn:window-0').rank === cachedRank + 20, 'Unloaded turn ranks did not follow the newly prepended history');
+    });
+    await check('A heading click takes ownership from history scanning without a return-to-origin race', async () => {
+      toc.openRequested = true;
+      const scanning = toc.loadHistory();
+      await pause(150);
+      await toc.navigateToGroup(windowGroup(12), 0);
+      await scanning;
+      await pause(400);
+      assert(alignedWindow(12) && !toc.historyScan, 'History cleanup restored the pre-click reading position');
+    });
+    await check('A newer click cancels the earlier virtual-target lookup', async () => {
+      const first = toc.navigateToGroup(windowGroup(0), 0);
+      await pause(160);
+      const second = toc.navigateToGroup(windowGroup(12), 0);
+      await Promise.all([first, second]);
+      assert(alignedWindow(12), 'An older navigation task overrode the newer click');
+    });
+    await check('Manual conversation scrolling cancels pending heading alignment', async () => {
+      const jump = toc.navigateToGroup(windowGroup(0), 0);
+      main.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaY: 500 }));
+      main.scrollTop = 3000;
+      await jump;
+      await pause(400);
+      assert(Math.abs(main.scrollTop - 3000) < 3 && !toc.navigation, 'Pending heading navigation fought the user scroll');
+    });
+    main.removeEventListener('scroll', renderWindow);
+    await check('Invalidated extension i18n falls back once and subsequent outline updates keep working', async () => {
+      const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'chrome');
+      let calls = 0;
+      try {
+        Object.defineProperty(globalThis, 'chrome', { configurable: true, value: {
+          i18n: { getMessage() { calls++; throw new Error('Extension context invalidated.'); } }
+        } });
+        document.documentElement.lang = 'en';
+        assert(shigangMessage('summary', 2, 3) === '2 responses · 3 headings', 'Invalidation did not fall back to the bundled catalog');
+        resetTurns(turn('after-reload', 'Outline survives invalidation'));
+        for (let i = 0; i < 5; i++) toc.refreshOutline();
+        assert(headings().join() === 'Outline survives invalidation', 'Invalidation broke outline rendering');
+        document.documentElement.lang = 'zh-CN';
+        assert(shigangMessage('summary', 2, 3) === '2 段回答 · 3 个标题', 'Chinese fallback placeholders broke');
+        assert(calls === 1, `Invalidated API was called repeatedly: ${calls}`);
+      } finally {
+        if (descriptor) Object.defineProperty(globalThis, 'chrome', descriptor);
+        else delete globalThis.chrome;
+        document.documentElement.lang = 'en';
+      }
     });
     results.textContent += `\n\n${passed.length} tests passed.`;
     document.title = `PASS: ${passed.length} TOC regression tests`;

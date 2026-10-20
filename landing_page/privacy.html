@@ -17,6 +17,7 @@
   <h2>Information Collection and Use</h2>
   <ul>
     <li>The extension reads already-loaded ChatGPT messages and headings to generate an outline, display question previews, and navigate to content. Processing takes place only in your browser.</li>
+    <li>On supported newer layouts, opening the outline automatically scrolls through history to let the website load older messages, then restores the reading position. Extracted outlines are cached only in page memory after messages are unloaded. Interacting with the conversation pauses scanning. No backend conversation API is accessed.</li>
     <li>Outline entries, navigation targets, reading position, and collapse state are held temporarily in page memory. Only the preferred sidebar width (one number) is saved in Chrome's local extension storage. Choosing automatic width removes that preference. The standalone local preview stores the same width preference in its own localStorage. Chat content and outlines are never persisted.</li>
     <li>The extension does not upload chat content, collect analytics, track browsing history, sell user data, or use data for advertising.</li>
     <li>No information is sent to any external servers or third parties.</li>

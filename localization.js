@@ -31,6 +31,30 @@ const shigangCatalogs = {
     "following": {
       "message": "Follows your reading"
     },
+    "refreshOutline": {
+      "message": "Refresh"
+    },
+    "refreshTitle": {
+      "message": "Refresh the outline and retry loading history"
+    },
+    "loadingHistory": {
+      "message": "Loading history…"
+    },
+    "historyPartial": {
+      "message": "History scan paused · refresh to continue"
+    },
+    "updateFailed": {
+      "message": "Update failed · retrying…"
+    },
+    "navigationFailed": {
+      "message": "Could not load target · refresh to retry"
+    },
+    "responsePending": {
+      "message": "Thinking or generating a response…"
+    },
+    "responseFailed": {
+      "message": "Response interrupted · waiting for a retry"
+    },
     "autoWidth": {
       "message": "Auto width"
     },
@@ -112,6 +136,30 @@ const shigangCatalogs = {
     "following": {
       "message": "随正文跟随"
     },
+    "refreshOutline": {
+      "message": "刷新目录"
+    },
+    "refreshTitle": {
+      "message": "重新整理目录并重试补全历史"
+    },
+    "loadingHistory": {
+      "message": "正在补全历史…"
+    },
+    "historyPartial": {
+      "message": "历史扫描已暂停，可刷新继续"
+    },
+    "updateFailed": {
+      "message": "目录更新失败，正在重试…"
+    },
+    "navigationFailed": {
+      "message": "暂未加载到目标，可刷新重试"
+    },
+    "responsePending": {
+      "message": "正在思考或生成回答…"
+    },
+    "responseFailed": {
+      "message": "回答已中断，等待重试"
+    },
     "autoWidth": {
       "message": "自动宽度"
     },
@@ -163,9 +211,19 @@ const shigangCatalogs = {
     }
   }
 };
+let shigangExtensionI18nAvailable = true;
 function shigangMessage(key, ...values) {
-  const localized = globalThis.chrome?.i18n?.getMessage(key, values.map(String));
-  if (localized) return localized;
+  if (shigangExtensionI18nAvailable) {
+    try {
+      const localized = globalThis.chrome?.i18n?.getMessage(key, values.map(String));
+      if (localized) return localized;
+    } catch (_) {
+      // Reloading an extension invalidates APIs in its old content scripts.
+      // Keep the existing page usable with the bundled catalogs, without
+      // repeatedly calling an invalid context from observers and timers.
+      shigangExtensionI18nAvailable = false;
+    }
+  }
   const language = document.documentElement.lang || navigator.language || 'en';
   const catalog = shigangCatalogs[/^zh/i.test(language) ? 'zh_CN' : 'en'];
   const entry = catalog[key] || shigangCatalogs.en[key];

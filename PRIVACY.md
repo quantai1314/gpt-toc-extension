@@ -9,7 +9,11 @@ This policy applies to the community version maintained in quantai1314/gpt-toc-e
 
 扩展读取当前 ChatGPT 页面已加载的用户问题、回答文字及 H1–H6 标题，以生成目录、显示问题摘要和跳转到对应内容；同时读取页面主题标记来适配深浅色。这涉及聊天消息和网站内容，即使处理仅在本地进行。
 
+在支持的新版页面上，打开目录会自动滚动扫描历史，触发网页加载较早的消息，并在结束时恢复阅读位置。已读取轮次的目录会暂存在页面内存中，供正文被网页卸载后继续显示和跳转；用户操作正文可暂停扫描。扫描不访问后台聊天接口，缓存不写入持久存储。
+
 The extension reads already-loaded user prompts, assistant response text, and H1–H6 headings on the current ChatGPT page to generate an outline, show question previews, and navigate to content. It also reads page theme markers to match light or dark mode. This handles chat messages and website content, even though processing is local.
+
+On supported newer layouts, opening the outline automatically scrolls through history to let the website load older messages, then restores the reading position. Extracted outlines are cached in page memory so entries remain available after the website unloads their message content. Interacting with the conversation pauses scanning. The scan does not access backend conversation APIs, and the cache is never written to persistent storage.
 
 ## 保存与传输 / Retention and transfer
 

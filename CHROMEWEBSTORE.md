@@ -1,6 +1,8 @@
 # Chrome Web Store 发布材料
 
-截至 2026-10-07（Asia/Shanghai），**拾纲 Shigang 1.0.3 已公开上架**。公开商品页已核对，显示版本 1.0.3、更新时间 2026-10-06。此前于 2026-10-04 提交审核。2026-10-07 的真实截图资料更新已成功提交，当前待审核，保留通过审核自动发布；现有公开版本仍为 1.0.3。
+截至 2026-10-20（Asia/Shanghai），**拾纲 Shigang 1.0.3 仍公开上架**。英文公开商品页显示版本 1.0.3、更新时间 2026-10-08；2026-10-07 提交的真实浅色、深色截图均已在公开画廊展示。两张下载 PNG 与仓库 1280×800 提交版逐字节一致，且与 README 的 1920×1080 版本为相同场景、不同裁剪。
+
+此前于 2026-10-04 提交版本审核；2026-10-07 提交截图资料更新时记录为待审核，并保留通过审核自动发布。该状态仅为历史记录；本次未访问开发者后台，最新正式审核状态、确切批准和生效日期未核实。不能将公开展示或 2026-10-08 的商品页更新时间等同于后台审核结论。验证仅覆盖本次英文公开商品页及其图片资源，不推定全部语言、地区或缓存已同步。
 
 - 公开安装：[Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)。
 - GitHub 发行：[v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3)。
@@ -35,6 +37,13 @@
 - 2026-10-04 的演示预览截图及原品牌素材保留在本地 dist/store-assets，作为历史资料。图标和宣传图没有在本次更换。
 - 2026-10-07 已保存全球及中文两组新截图并重新进入商品页核对，成功提交资料审核。凭据：dist/store-assets/chrome-real-screenshots-in-review.json。
 
+## 2026-10-20 公开截图核验
+
+- 英文商品页画廊共两张截图：第 1 张为真实浅色，第 2 张为真实深色，均非旧演示预览图。
+- 从商品页的 `data-media-url` 读取两张资源地址，下载页面引用的 1280×800 PNG；SHA-256（Secure Hash Algorithm 256-bit，256 位安全散列算法）与仓库提交版完全相同。
+- 与 `assets/screenshots/shigang-light-1920x1080.png`、`shigang-dark-1920x1080.png` 对照，提示词、正文与右侧目录内容相同；商店 16:10 与 README 16:9 的构图差异来自不同裁剪。
+- 原图固定版本、资源地址和文件摘要见[核验记录](docs/store-listing-verification-2026-10-20.md)。本次只更新文档，没有重新提交安装包或更改扩展代码。
+
 ## 权限和隐私
 
 单一用途：为当前已加载的 ChatGPT 对话生成可折叠标题目录，帮助用户定位回答内容。
@@ -55,7 +64,7 @@ No extension account/payment needed. Use your own ChatGPT account at https://cha
 
 本地 36 项 Chromium 浏览器回归检查、JS 语法、git diff --check、ZIP 完整性、版本、图标尺寸及打包文件与源码一致性检查通过。已检查中英文和深浅色预览。未新增实际 ChatGPT 扩展安装测试，不将这些检查视为商店审核通过。
 
-此前 1.0.1、1.0.2 包和提交截图保留为历史资料。1.0.2 提交包 SHA256 为 8653f5d47648afb91d562268bf858eb28b8caedda77a67b48d6dbdaf123c9dd0，主要包含 Markdown/MathML 修复。本次取消其审核，替换为包含宽度调节、正文避让、阅读跟随、缓存会话切换修复和品牌国际化的 1.0.3 后重新提交。当前有效审核记录以本页开头为准。
+此前 1.0.1、1.0.2 包和提交截图保留为历史资料。1.0.2 提交包 SHA256 为 8653f5d47648afb91d562268bf858eb28b8caedda77a67b48d6dbdaf123c9dd0，主要包含 Markdown/MathML 修复。本次取消其审核，替换为包含宽度调节、正文避让、阅读跟随、缓存会话切换修复和品牌国际化的 1.0.3 后重新提交。最新公开展示核验及其范围以本页开头为准；本次没有取得新的后台审核记录。
 
 Edge 使用同一份 1.0.3 ZIP，现已公开上架；详情见 EDGEADDONS.md。
 

@@ -150,13 +150,13 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ## Chrome 与 Edge 商店发布
 
-截至 2026-10-07，**1.0.3「拾纲 Shigang」** 已在两家商店公开上架，公开商品页面已核对：
+截至 2026-10-20（Asia/Shanghai），**1.0.3「拾纲 Shigang」** 仍在两家商店公开上架。本次核对英文公开商品页及其截图资源：
 
-- [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)：页面显示版本 1.0.3。
-- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)：公开商品页可访问。
+- [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)：页面显示版本 1.0.3，更新时间 2026-10-08；浅色、深色真实截图均已公开展示，下载的两张 PNG 与仓库 1280×800 提交版逐字节一致。
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)：页面显示版本 1.0.3，更新时间 2026-10-04；浅色、深色真实截图均已公开展示，JPEG 资源与仓库提交版画面一致（存在压缩差异）。
 - [GitHub Release v1.0.3](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3)：发布说明含两家商店链接，附同一份商店提交 ZIP。
 
-2026-10-07 已将商店演示预览截图替换为真实浅色／深色示例截图并提交资料更新：Chrome 待审核，Edge In review；新图片通过审核后才会出现在商店，现有 1.0.3 仍已上架。GitHub 已同步真实截图。
+2026-10-07 提交真实浅色／深色截图资料更新时，Chrome 记录为待审核，Edge 为 In review；这些是当日的历史状态。2026-10-20 已确认两家公开画廊均已替换为该批真实截图；本次未访问开发者后台，未取得最新正式审核状态，也无法确定确切批准或生效日期。公开展示结果及商品页更新时间不等同于后台审核结论。验证仅覆盖本次访问的英文商品页，不推定所有语言、地区或缓存已同步。原图、资源地址、摘要及对比方法见[公开展示核验记录](docs/store-listing-verification-2026-10-20.md)。
 
 GitHub 源码已同步双语名称与界面、新图标及当前功能。两家提交的是同一安装包 `shigang-chatgpt-outline-1.0.3.zip`，SHA-256：`2dd46e628b566efe31a08213ea3bfa815041c3a2a38274389d3a6732ad325f99`。发布资料见 [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md)、[EDGEADDONS.md](EDGEADDONS.md)，中英文文案源为 [store-listings.json](store-listings.json)。
 

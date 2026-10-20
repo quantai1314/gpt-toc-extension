@@ -49,7 +49,9 @@ Only messages currently loaded in the page are indexed. Responses without H1–H
 
 ## Release status
 
-Version **1.0.3** is available in both stores. On 2026-10-07, the real screenshots were submitted as a store listing update: Chrome is pending review and Edge is In review. The existing extension remains available; the new store images appear after approval. This screenshot update did not change the extension code, permissions, version or ZIP package.
+As of **2026-10-20 (Asia/Shanghai)**, version **1.0.3** remains publicly listed in both stores. The English public listings now display both real light and dark screenshots submitted on 2026-10-07. Chrome shows Updated October 8, 2026; its two downloaded PNGs are byte-for-byte identical to the repository's 1280×800 submission assets. Edge shows Updated October 4, 2026; its JPEG images show the same content, with compression differences.
+
+Chrome pending review and Edge In review describe the historical submission state on 2026-10-07. No developer dashboard was accessed in this verification, so the current formal review status and exact approval/publication dates remain unverified. Public screenshots and listing update dates are not dashboard review statuses. This check covers the English listings accessed, not all locales, regions or caches. See the [dated verification record](docs/store-listing-verification-2026-10-20.md) for source URLs, hashes and comparison details. Only documentation was updated; no extension code, permissions, version or ZIP package was changed or resubmitted.
 
 The extension ZIP attached to the release is the same package submitted to both stores. SHA-256: `2dd46e628b566efe31a08213ea3bfa815041c3a2a38274389d3a6732ad325f99`.
 

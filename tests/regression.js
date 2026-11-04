@@ -295,6 +295,116 @@ document.addEventListener('DOMContentLoaded', async () => {
       answer.lastElementChild.remove();
       main.style.width = oldWidth;
     });
+    const modalTOC = globalThis.__shigangTOCInstance;
+    const viewer = document.createElement('div');
+    viewer.setAttribute('role', 'dialog');
+    viewer.setAttribute('aria-modal', 'true');
+    viewer.setAttribute('aria-label', 'Image preview');
+    viewer.style.cssText = 'position:fixed;inset:0;z-index:50;background:white';
+    viewer.innerHTML = '<h2>Image preview</h2><button type="button">Close viewer</button>';
+    const openViewer = () => {
+      document.body.append(viewer);
+      main.setAttribute('aria-hidden', 'true');
+      main.inert = true;
+      viewer.querySelector('button').focus();
+    };
+    const closeViewer = () => {
+      viewer.remove();
+      main.removeAttribute('aria-hidden');
+      main.inert = false;
+    };
+    const entriesBeforeViewer = headings().join();
+    await check('Image modal immediately hides the outline and entry without erasing headings or stealing focus', async () => {
+      handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+      sidebar.querySelector('.toc-group-collapse-icon').click();
+      openViewer();
+      await waitFor(() => modalTOC.modalOpen && !isOpen());
+      assert(getComputedStyle(sidebar).visibility === 'hidden', 'Sidebar still paints above the image');
+      assert(getComputedStyle(toggle).display === 'none' && toggle.inert, 'Outline entry overlays the image');
+      assert(sidebar.inert && document.activeElement === viewer.querySelector('button'), 'Modal focus was disturbed');
+      await pause(350);
+      assert(headings().join() === entriesBeforeViewer, 'Hidden background erased the outline');
+    });
+    await check('Escape closing the image restores the requested outline, width and folded groups', async () => {
+      viewer.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeViewer();
+      }, { once: true });
+      viewer.querySelector('button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await waitFor(isOpen);
+      assert(modalTOC.openRequested && !sidebar.inert, 'Escape closed the outline as well as the image');
+      assert(Math.round(sidebar.getBoundingClientRect().width) === 320, 'Image preview lost preferred width');
+      assert(sidebar.querySelector('.toc-group-content').style.display === 'none', 'Image preview lost folded groups');
+      sidebar.querySelector('.toc-group-collapse-icon').click();
+      sidebar.querySelector('.toc-width-reset').click();
+    });
+    await check('A manually closed outline stays closed after the image and its entry returns', async () => {
+      sidebar.querySelector('.toc-close').click();
+      openViewer();
+      await waitFor(() => modalTOC.modalOpen);
+      assert(getComputedStyle(toggle).display === 'none', 'Closed outline entry overlays image');
+      closeViewer();
+      await waitFor(() => !modalTOC.modalOpen && getComputedStyle(toggle).display !== 'none');
+      assert(!isOpen() && !modalTOC.openRequested && !toggle.inert, 'Image reopened a manually closed outline');
+      toggle.click();
+      await waitFor(isOpen);
+    });
+    await check('Hidden cached modals and visible non-modal panels leave the outline usable', async () => {
+      const wrapper = document.createElement('div');
+      wrapper.hidden = true;
+      wrapper.append(viewer);
+      document.body.append(wrapper);
+      await pause(300);
+      assert(isOpen() && !modalTOC.modalOpen, 'Hidden cached modal suppressed the outline');
+      viewer.setAttribute('aria-modal', 'false');
+      wrapper.hidden = false;
+      await pause(300);
+      assert(isOpen() && !modalTOC.modalOpen, 'Non-modal panel suppressed the outline');
+      wrapper.remove();
+    });
+    await check('Changing only aria-modal hides and restores the outline', async () => {
+      document.body.append(viewer);
+      await pause(250);
+      viewer.setAttribute('aria-modal', 'true');
+      await waitFor(() => modalTOC.modalOpen && !isOpen());
+      viewer.setAttribute('aria-modal', 'false');
+      await waitFor(isOpen);
+      viewer.remove();
+      viewer.setAttribute('aria-modal', 'true');
+    });
+    await check('Native showModal is detected while a native non-modal dialog stays usable', async () => {
+      const native = document.createElement('dialog');
+      native.innerHTML = '<button type="button">Close image</button>';
+      document.body.append(native);
+      native.showModal();
+      await waitFor(() => modalTOC.modalOpen && !isOpen());
+      native.close();
+      await waitFor(isOpen);
+      native.show();
+      await pause(250);
+      assert(isOpen() && !modalTOC.modalOpen, 'Non-modal native dialog suppressed the outline');
+      native.close();
+      native.remove();
+    });
+    await check('Closing one of two modals keeps the outline hidden until the last closes', async () => {
+      openViewer();
+      const second = viewer.cloneNode(true);
+      document.body.append(second);
+      await waitFor(() => modalTOC.modalOpen);
+      viewer.remove();
+      await pause(300);
+      assert(modalTOC.modalOpen && !isOpen() && getComputedStyle(toggle).display === 'none', 'Outline appeared behind a remaining modal');
+      second.remove();
+      closeViewer();
+      await waitFor(isOpen);
+    });
+    await check('Escape before the modal observer runs does not change the requested outline state', async () => {
+      openViewer();
+      viewer.querySelector('button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      assert(modalTOC.openRequested, 'Early Escape changed the outline preference');
+      await waitFor(() => modalTOC.modalOpen && !isOpen());
+      closeViewer();
+      await waitFor(isOpen);
+    });
     await check('Clicks navigate without directory or body highlighting', async () => {
       const target = main.querySelector('h2');
       let jumped = false;
@@ -328,6 +438,53 @@ document.addEventListener('DOMContentLoaded', async () => {
       main.scrollTop = 0;
       await waitFor(() => directoryItemVisible(0));
       assert(!sidebar.querySelector('.toc-active, [aria-current]'), 'Following adds highlighting');
+    });
+    await check('Reading several sections inside the outline keeps the directory still', async () => {
+      main.scrollTop = 0;
+      await waitFor(() => content.scrollTop < 1);
+      const bounds = content.getBoundingClientRect();
+      const middle = [...sidebar.querySelectorAll('.toc-item')].find(item => {
+        const rect = item.getBoundingClientRect();
+        return rect.top > bounds.top + bounds.height * 0.4 && rect.bottom < bounds.top + bounds.height * 0.65;
+      });
+      assert(middle, 'Missing visible middle heading fixture');
+      const index = Number(middle.dataset.heading);
+      const before = content.scrollTop;
+      alignHeading(index - 1);
+      await pause(100);
+      alignHeading(index);
+      await pause(150);
+      assert(Math.abs(content.scrollTop - before) < 1, 'Directory moves for every section instead of following in intervals');
+    });
+    await check('A still-visible heading near the edge smoothly returns to the middle without moving the body', async () => {
+      const bounds = content.getBoundingClientRect();
+      const edgeItem = [...sidebar.querySelectorAll('.toc-item')].find(item => {
+        const rect = item.getBoundingClientRect();
+        return rect.bottom <= bounds.bottom - 4 && rect.bottom > bounds.bottom - Math.min(80, bounds.height * 0.2) + 4;
+      });
+      assert(edgeItem, 'Missing visible edge heading fixture');
+      const index = Number(edgeItem.dataset.heading);
+      const before = content.scrollTop;
+      alignHeading(index);
+      const bodyPosition = main.scrollTop;
+      await waitFor(() => content.scrollTop > before + 1);
+      await waitFor(() => {
+        const rect = edgeItem.getBoundingClientRect();
+        return Math.abs((rect.top + rect.bottom - bounds.top - bounds.bottom) / 2) < 2;
+      });
+      assert(main.scrollTop === bodyPosition, 'Directory following scrolled the conversation');
+    });
+    await check('Manual directory input cancels an ongoing follow and body scrolling resumes it', async () => {
+      const before = content.scrollTop;
+      alignHeading(55);
+      await waitFor(() => content.scrollTop > before + 1);
+      content.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true }));
+      content.scrollTop = Math.max(0, content.scrollTop - 40);
+      const manual = content.scrollTop;
+      await pause(500);
+      assert(Math.abs(content.scrollTop - manual) < 1, 'An ongoing follow kept scrolling over manual browsing');
+      main.scrollTop += 15;
+      await waitFor(() => directoryItemVisible(55));
     });
     await check('Manual directory browsing pauses following until conversation scroll resumes', async () => {
       alignHeading(55);

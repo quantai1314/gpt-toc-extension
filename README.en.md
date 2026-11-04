@@ -10,8 +10,9 @@ Shigang adds a collapsible table of contents to long ChatGPT conversations. Brow
 
 - Group H1–H6 headings by assistant response, with the related user prompt.
 - Jump to a heading or prompt, and collapse responses or nested sections.
-- Follow the current reading position without highlighting the conversation.
+- Follow the current reading position without highlighting the conversation. The outline stays still while the current section is in its middle area, then scrolls smoothly as the section approaches an edge. Manual outline browsing stops the movement; scrolling the conversation resumes following. Reduced motion preferences use instant scrolling.
 - Resize the sidebar and save your preferred width on this device. The sidebar adjusts to available space and collapses when space is insufficient.
+- Hide the outline and its entry while an image preview or another modal is open, then restore the previous open state, width and folds. Escape remains available to the modal.
 - Preserve rendered Markdown and math in headings and prompt summaries, including fractions, powers and matrices when the page provides MathML.
 - Update while responses stream and when you switch conversations, excluding hidden cached conversations.
 - Support light and dark themes, keyboard navigation, English and Simplified Chinese interface labels.

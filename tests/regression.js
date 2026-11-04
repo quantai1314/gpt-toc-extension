@@ -405,13 +405,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       closeViewer();
       await waitFor(isOpen);
     });
-    await check('Clicks navigate without directory or body highlighting', async () => {
+    await check('Clicks navigate without changing conversation styles', async () => {
       const target = main.querySelector('h2');
       let jumped = false;
       target.scrollIntoView = () => { jumped = true; };
       document.querySelector('.toc-item').click();
       assert(jumped, 'Heading click failed');
-      assert(!sidebar.querySelector('.toc-active, [aria-current]'), 'Directory highlight remains');
       assert(target.style.backgroundColor === '', 'Body highlight remains');
       document.querySelector('.toc-group-header').click();
       assert(main.querySelector('[data-markdown-text-style]').style.backgroundColor === '', 'Response highlight remains');
@@ -437,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       assert(main.scrollTop === bodyPosition, 'Following moved the conversation');
       main.scrollTop = 0;
       await waitFor(() => directoryItemVisible(0));
-      assert(!sidebar.querySelector('.toc-active, [aria-current]'), 'Following adds highlighting');
+      await waitFor(() => sidebar.querySelector('.toc-item[aria-current="location"]')?.dataset.heading === '0');
     });
     await check('Reading several sections inside the outline keeps the directory still', async () => {
       main.scrollTop = 0;
@@ -455,6 +454,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       alignHeading(index);
       await pause(150);
       assert(Math.abs(content.scrollTop - before) < 1, 'Directory moves for every section instead of following in intervals');
+    });
+    await check('The current outline heading becomes bold and follows reading down and back up', async () => {
+      const item = index => sidebar.querySelector(`.toc-item[data-heading="${index}"]`);
+      alignHeading(6);
+      await waitFor(() => item(6).getAttribute('aria-current') === 'location');
+      assert(getComputedStyle(item(6).querySelector('.toc-text')).fontWeight === '700', 'Current heading is not bold');
+      alignHeading(7);
+      await waitFor(() => item(7).getAttribute('aria-current') === 'location');
+      assert(getComputedStyle(item(6).querySelector('.toc-text')).fontWeight !== '700', 'Previous heading stayed bold');
+      assert(sidebar.querySelectorAll('[aria-current="location"]').length === 1, 'Multiple reading markers remain');
+      alignHeading(6);
+      await waitFor(() => item(6).getAttribute('aria-current') === 'location');
+      assert(main.querySelectorAll('h2')[6].style.backgroundColor === '', 'Reading marker changed body styles');
     });
     await check('A still-visible heading near the edge smoothly returns to the middle without moving the body', async () => {
       const bounds = content.getBoundingClientRect();
@@ -482,7 +494,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       content.scrollTop = Math.max(0, content.scrollTop - 40);
       const manual = content.scrollTop;
       await pause(500);
-      assert(Math.abs(content.scrollTop - manual) < 1, 'An ongoing follow kept scrolling over manual browsing');
+      assert(Math.abs(content.scrollTop - manual) < 1,
+        `An ongoing follow kept scrolling over manual browsing (${manual} -> ${content.scrollTop}; paused=${globalThis.__shigangTOCInstance.followPaused})`);
       main.scrollTop += 15;
       await waitFor(() => directoryItemVisible(55));
     });
@@ -500,8 +513,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await check('Following a folded response preserves the user collapse choice', async () => {
       sidebar.querySelector('.toc-group-collapse-icon').click();
       main.scrollTop -= 20;
-      await pause(100);
+      await waitFor(() => sidebar.querySelector('.toc-group-header').getAttribute('aria-current') === 'location');
       assert(sidebar.querySelector('.toc-group-content').style.display === 'none', 'Following reopened a folded response');
+      assert(getComputedStyle(sidebar.querySelector('.toc-group-prompt')).fontWeight === '700', 'Folded current response is not bold');
       sidebar.querySelector('.toc-group-collapse-icon').click();
     });
     await check('Streaming outline rebuild preserves manual directory scroll', async () => {

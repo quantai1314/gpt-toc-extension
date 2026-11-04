@@ -62,6 +62,10 @@
 #chatgpt-toc-sidebar .toc-group-prompt:has(math) { display: block; }
 #chatgpt-toc-sidebar .toc-h3, #chatgpt-toc-sidebar .toc-h4, #chatgpt-toc-sidebar .toc-h5, #chatgpt-toc-sidebar .toc-h6 { color: var(--toc-muted); }
 #chatgpt-toc-sidebar .toc-item:hover { color: var(--toc-accent); background: var(--toc-soft); }
+#chatgpt-toc-sidebar .toc-item[aria-current="location"] .toc-text,
+#chatgpt-toc-sidebar .toc-item[aria-current="location"] .toc-text strong,
+#chatgpt-toc-sidebar .toc-item[aria-current="location"] .toc-text b,
+#chatgpt-toc-sidebar .toc-group-header[aria-current="location"] .toc-group-prompt { font-weight: 700; }
 #chatgpt-toc-sidebar .toc-group-separator { height: 1px; background: var(--toc-line); margin: 19px 10px 11px; }
 #chatgpt-toc-sidebar .toc-empty, #chatgpt-toc-sidebar .toc-loading { padding: 15px 10px; color: var(--toc-muted); font-size: 11px; line-height: 1.7; }
 #chatgpt-toc-sidebar .toc-footer { display: flex; align-items: center; gap: 7px; color: var(--toc-muted); font-size: 10px; padding: 16px 24px; border-top: 1px solid var(--toc-line); }

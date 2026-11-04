@@ -44,6 +44,7 @@ class ChatGPTTOC {
     this.modalOpen = false;
     this.followPaused = false;
     this.followScrollTarget = null;
+    this.followFrame = null;
     this.framePending = false;
     this.layoutPending = false;
     this.contentRoots = [];
@@ -392,8 +393,10 @@ class ChatGPTTOC {
 
   observeReadingPosition() {
     const content = document.getElementById('toc-content');
+    let pausedScrollTop = null;
     const pauseFollowing = () => {
       this.followPaused = true;
+      pausedScrollTop = this.findConversationScroller()?.scrollTop;
       this.stopReadingFollow();
     };
     content.addEventListener('wheel', pauseFollowing, { passive: true });
@@ -406,7 +409,11 @@ class ChatGPTTOC {
       if (event.target instanceof Element && event.target.closest('#chatgpt-toc-sidebar')) return;
       if (event.target !== document && event.target !== document.scrollingElement &&
           !this.contentRoots.some(root => event.target instanceof Element && event.target.contains(root))) return;
+      // A body scroll event queued before manual outline input must not resume
+      // following unless the reading position actually changed after the pause.
+      if (this.followPaused && pausedScrollTop === this.findConversationScroller()?.scrollTop) return;
       this.followPaused = false;
+      pausedScrollTop = null;
       this.scheduleReadingUpdate();
     }, { capture: true, passive: true });
     window.addEventListener('resize', () => this.scheduleReadingUpdate(true));
@@ -416,14 +423,34 @@ class ChatGPTTOC {
   }
 
   stopReadingFollow() {
-    if (this.followScrollTarget === null) return;
+    if (this.followFrame !== null) cancelAnimationFrame(this.followFrame);
+    this.followFrame = null;
     this.followScrollTarget = null;
+  }
+
+  scrollOutlineTo(top) {
+    this.stopReadingFollow();
+    this.followScrollTarget = top;
     const content = document.getElementById('toc-content');
-    content.scrollTo({ top: content.scrollTop, behavior: 'instant' });
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      content.scrollTo({ top, behavior: 'instant' });
+      return;
+    }
+    // Own the animation so manual input cancels it without a compositor tail.
+    const from = content.scrollTop;
+    let started = null;
+    const step = time => {
+      started ??= time;
+      const progress = Math.min(1, (time - started) / 240);
+      const eased = 1 - (1 - progress) ** 3;
+      content.scrollTo({ top: from + (top - from) * eased, behavior: 'instant' });
+      this.followFrame = progress < 1 ? requestAnimationFrame(step) : null;
+    };
+    this.followFrame = requestAnimationFrame(step);
   }
 
   syncReadingPosition() {
-    if (!this.isVisible || this.followPaused || !this.responseGroups.length) return;
+    if (!this.isVisible || !this.responseGroups.length) return;
     let readingTop = 80;
     const firstMessage = this.responseGroups.find(group => group.messageElement?.isConnected)?.messageElement;
     if (!firstMessage) return;
@@ -460,6 +487,13 @@ class ChatGPTTOC {
       item = children ? children.previousElementSibling : this.sidebar.querySelector(`.toc-group-header[data-group="${entry.groupIndex}"]`);
     }
     if (!item) return;
+    const previous = this.sidebar.querySelector('[aria-current="location"]');
+    if (previous !== item) {
+      previous?.removeAttribute('aria-current');
+      item.setAttribute('aria-current', 'location');
+    }
+    // Manual outline browsing pauses movement, but keeps the reading marker.
+    if (this.followPaused) return;
     const content = document.getElementById('toc-content');
     const bounds = content.getBoundingClientRect();
     const rect = item.getBoundingClientRect();
@@ -472,9 +506,8 @@ class ChatGPTTOC {
       // Repeated body scroll events must not restart the same smooth movement.
       if (Math.abs(top - content.scrollTop) < 1 ||
           (this.followScrollTarget !== null && Math.abs(top - this.followScrollTarget) < 1)) return;
-      this.followScrollTarget = top;
       // Scroll only the directory, never an ancestor or the conversation.
-      content.scrollTo({ top, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+      this.scrollOutlineTo(top);
     }
   }
 

@@ -166,6 +166,8 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ## Chrome 与 Edge 商店发布
 
+2026-11-05 已准备 **1.0.5** 商店更新包，包含图片预览避让、当前章节加粗和平滑跟随及暂停修复；此前源码通过 71 项浏览器回归，包内 12 项文件与源码一致。**Edge 已提交审核，后台显示 1.0.5 / In review，现有 1.0.4 / Live**；Chrome 开发者后台被浏览器工具拒绝访问，1.0.5 尚未上传或提交。详见两家发布记录。
+
 2026-10-20（Asia/Shanghai）已准备 **1.0.4**，包含思考活动去重、历史目录保留、旧标题补载跳转和错误恢复修复。
 
 - [GitHub Release v1.0.4](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.4)：提供新版本 ZIP，可手动加载。

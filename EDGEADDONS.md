@@ -1,5 +1,14 @@
 # Microsoft Edge Add-ons 发布记录
 
+## 1.0.5 已提交审核（2026-11-05）
+
+- 使用与 Chrome 相同的 `dist/shigang-chatgpt-outline-1.0.5.zip`，35,140 字节；SHA-256：`81b3ec113eb3fbd6c0a9f31477e7a25cf1ef01b8026a38dd1329e7dbd97ed77c`。
+- 更新包含图片预览避让、当前章节加粗、平滑阅读跟随与手动暂停修复；功能源码通过 71 项浏览器回归，权限未增加，12 项打包文件与源码逐项一致。
+- 已上传并完成包验证，后台识别版本 1.0.5、English 和 Chinese (China)，状态 Complete。
+- 已保存并核对两种语言的新说明，保留原有图标、宣传图和截图；446 字符审核备注与 `store-listings.json` 一致。
+- 点击最终 Publish 后，后台明确显示 **Version 1.0.5 / In review**，现有 **Version 1.0.4 / Live**；尚未确认 1.0.5 审核通过或公开生效。
+- 后台提示预计 7 个工作日内回复；这不是实际审核期限保证。此前登录会话未显示 Edge 工作区的问题已恢复，本次使用原有开发者账户完成提交。
+
 ## 1.0.4 已提交审核（2026-10-20）
 
 - 后台已识别 `shigang-chatgpt-outline-1.0.4.zip`，版本 1.0.4，English 与 Chinese (China)，包验证状态 Complete。

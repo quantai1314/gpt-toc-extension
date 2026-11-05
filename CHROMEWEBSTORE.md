@@ -1,5 +1,15 @@
 # Chrome Web Store 发布材料
 
+## 1.0.5 更新准备（2026-11-05）
+
+- 版本：manifest.json、package.json、store-listings.json 均为 1.0.5。
+- 包：`dist/shigang-chatgpt-outline-1.0.5.zip`，35,140 字节；SHA-256：`81b3ec113eb3fbd6c0a9f31477e7a25cf1ef01b8026a38dd1329e7dbd97ed77c`。
+- 更新：图片预览期间隐藏目录与入口，关闭后恢复；当前章节加粗；目录接近边缘时平滑跟随，并修复手动暂停后的余动与误恢复。
+- 功能源码已通过 71 项浏览器回归；本次仅调整版本和商店文案。12 项白名单文件、ZIP 完整性及包内文件与源码一致性检查通过，权限未增加。
+- 中英文说明及 446 字符审核备注已同步到 `store-listings.json`。保留原有图标、截图及隐私声明。
+- 2026-11-05 尝试访问已记录的 Chrome 开发者后台时，浏览器工具返回 `Not allowed`；尚未上传或提交 1.0.5。
+- 同一份 1.0.5 ZIP 已提交 Edge 审核，后台显示 In review；详见 `EDGEADDONS.md`，不能将 Edge 的提交视为 Chrome 已提交。
+
 ## 1.0.4 更新准备（2026-10-20）
 
 - 版本：manifest.json、package.json、store-listings.json 均为 1.0.4。

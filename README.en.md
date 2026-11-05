@@ -54,6 +54,8 @@ Thinking and tool activities within a turn do not become duplicate answers. Pend
 
 ## Release status
 
+On 2026-11-05, version **1.0.5** was prepared with image-preview handling, a bold current outline item and reading-follow fixes. The source passed 71 browser regressions, and all 12 packaged files match the source. **Edge 1.0.5 was submitted and is In review; existing version 1.0.4 remains Live.** Chrome 1.0.5 has not been uploaded or submitted because browser tooling denied access to its developer dashboard. See the store submission records for details.
+
 Version **1.0.4** was prepared on **2026-10-20 (Asia/Shanghai)** with thinking/tool deduplication, retained history outlines, cached heading navigation and error recovery fixes.
 
 - [GitHub Release v1.0.4](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.4) provides the extension ZIP for manual loading.

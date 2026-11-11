@@ -29,6 +29,7 @@
 - **深浅色适配**：优先识别页面主题标记，没有明确标记时跟随系统偏好。
 - **键盘操作**：聚焦目录标题后，可以按 Enter 或空格跳转。
 - **中英文界面**：按浏览器语言显示中文或英文名称、按钮和摘要；英文品牌为 Shigang。
+- **工具栏入口**：点击浏览器工具栏的拾纲图标即可展开或收起目录，不新增权限。
 
 ## 安装
 
@@ -37,7 +38,7 @@
 - [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk)
 - [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj)
 
-安装后刷新 [ChatGPT](https://chatgpt.com/)，点击右上方的「目录」。下面是手动加载源码的替代方式：
+安装后刷新 [ChatGPT](https://chatgpt.com/)，点击右上方的「目录」，或点击浏览器工具栏中的拾纲图标。下面是手动加载源码的替代方式：
 
 1. [下载 ZIP](https://github.com/quantai1314/gpt-toc-extension/archive/refs/heads/main.zip)，解压到一个准备长期保留的目录。
 2. 打开 Chrome 的 `chrome://extensions/`，或 Edge 的 `edge://extensions/`。
@@ -51,7 +52,7 @@
 
 ## 使用与更新
 
-点击目录标题可以定位正文；点击右侧小箭头可以折叠或展开。点击问题摘要会定位对应问题；点击右上角「×」关闭侧栏，再点「目录」可重新打开。
+点击目录标题可以定位正文；点击右侧小箭头可以折叠或展开。点击问题摘要会定位对应问题；点击右上角「×」关闭侧栏，再点「目录」可重新打开。浏览器工具栏中的拾纲图标也能展开或收起目录；在非 ChatGPT 页面点击它会新开一个 ChatGPT 标签页。
 
 商店安装版由浏览器管理更新；更新后刷新 ChatGPT 页面即可。手动加载版更新文件后，需要在 `chrome://extensions/` 或 `edge://extensions/` 中重新加载 **拾纲 Shigang - ChatGPT 对话目录**，再刷新 ChatGPT 页面。仅刷新网页不会重新加载本地扩展文件。
 
@@ -124,6 +125,7 @@
 | 文件 | 用途 |
 | --- | --- |
 | `content.js` | 回答识别、目录生成、动态更新和交互 |
+| `background.js` | 工具栏图标点击：通知当前 ChatGPT 页面切换目录 |
 | `styles.css` | 侧栏与入口按钮样式 |
 | `manifest.json` | Chrome 扩展配置 |
 | `preview.html` | 引用当前源码的预览模板 |
@@ -132,7 +134,6 @@
 | `ui-preview.html` | 可直接打开的独立预览文件 |
 | `tests/regression.html`、`tests/regression.js` | 浏览器回归检查 |
 | `test.html` | 旧版消息结构的手动示例页 |
-| `landing_page/` | 项目介绍页源码 |
 
 修改源码后，重新生成独立预览：
 
@@ -154,7 +155,7 @@ node --check build-preview.cjs
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
-随后打开 `http://127.0.0.1:8765/tests/regression.html`。页面会显示逐项结果，全部通过时显示 **71 tests passed**。建议窗口宽度至少 1100px，以便同时显示测试正文和目录。`npm test` 仅显示运行指引，不会自动执行这些浏览器检查。
+随后打开 `http://127.0.0.1:8765/tests/regression.html`。页面会显示逐项结果，全部通过时显示 **72 tests passed**。建议窗口宽度至少 1100px，以便同时显示测试正文和目录。`npm test` 仅显示运行指引，不会自动执行这些浏览器检查。
 
 2026-11-04 本地源码通过全部 71 项浏览器回归检查，累计新增 12 项覆盖图片预览的隐藏与恢复、宽度与折叠选择保留、Esc、主动关闭、隐藏缓存弹窗、非模态面板、模态属性变化、原生弹窗和多个弹窗，以及目录间歇跟随、边缘触发、手动中止跟随和当前章节加粗。已核对实际 ChatGPT 图片预览的 DOM 模态属性；本次未更新商店安装包，本地加载版需重新加载扩展并刷新 ChatGPT 页面。
 
@@ -180,7 +181,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ## 数据处理
 
-目录代码在浏览器内读取已加载的消息文字和标题，不上传对话、不提供遥测。`storage` 权限仅用于在本机保存手动设置的目录宽度，不保存消息、目录、阅读位置或折叠状态。独立本地预览使用自身的 localStorage 保存同一宽度偏好。扩展匹配 `chatgpt.com` 与旧域名 `chat.openai.com`。这些说明针对扩展代码，不代表 ChatGPT、GitHub 或介绍页所用第三方资源的数据处理方式。
+目录代码在浏览器内读取已加载的消息文字和标题，不上传对话、不提供遥测。`storage` 权限仅用于在本机保存手动设置的目录宽度，不保存消息、目录、阅读位置或折叠状态。独立本地预览使用自身的 localStorage 保存同一宽度偏好。扩展匹配 `chatgpt.com` 与旧域名 `chat.openai.com`。这些说明针对扩展代码，不代表 ChatGPT 或 GitHub 等第三方服务的数据处理方式。
 
 ## 来源与许可
 

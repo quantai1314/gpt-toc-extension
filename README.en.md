@@ -16,14 +16,15 @@ Shigang adds a collapsible table of contents to long ChatGPT conversations. Brow
 - Preserve rendered Markdown and math in headings and prompt summaries, including fractions, powers and matrices when the page provides MathML.
 - Update while responses stream and when you switch conversations, excluding hidden cached conversations.
 - Support light and dark themes, keyboard navigation, English and Simplified Chinese interface labels.
+- Toggle the outline from the browser toolbar icon as well as the in-page button, with no additional permissions.
 
 ## Install and update
 
-Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) or [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj). Refresh [ChatGPT](https://chatgpt.com/) and click **Outline** near the upper-right corner. Store updates are managed by your browser.
+Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/shigang-chatgpt-table-of/gnkgnojbcclcfjelkijmhaaboidhnehk) or [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/kojdleblcoelmniokkifjjfhmjeaddfj). Refresh [ChatGPT](https://chatgpt.com/) and click **Outline** near the upper-right corner, or click the Shigang toolbar icon. Store updates are managed by your browser.
 
 For manual installation:
 
-1. Download **shigang-chatgpt-outline-1.0.3.zip** from the [release page](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.3) and extract it to a folder you will keep.
+1. Download **shigang-chatgpt-outline-1.0.4.zip** from the [release page](https://github.com/quantai1314/gpt-toc-extension/releases/tag/v1.0.4) and extract it to a folder you will keep.
 2. Open `chrome://extensions/` or `edge://extensions/` and enable **Developer mode**.
 3. Click **Load unpacked** and select the folder directly containing `manifest.json`.
 4. Refresh ChatGPT and click **Outline**.

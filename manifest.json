@@ -10,6 +10,9 @@
     "https://chat.openai.com/*",
     "https://chatgpt.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],

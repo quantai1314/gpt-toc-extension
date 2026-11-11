@@ -483,6 +483,14 @@ class ChatGPTTOC {
       if (event.key === 'Escape' && !event.defaultPrevented && this.isVisible &&
           !this.modalOpen && !this.hasOpenModal()) this.toggleSidebar();
     });
+    // The toolbar icon (background.js) toggles the outline like the page button.
+    try {
+      globalThis.chrome?.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
+        if (message?.type !== 'shigang:toggle') return;
+        if (!this.modalOpen && !this.hasOpenModal()) this.toggleSidebar();
+        sendResponse({ visible: this.isVisible });
+      });
+    } catch (_) { /* Standalone previews and invalidated contexts have no runtime. */ }
   }
 
   createSidebar() {

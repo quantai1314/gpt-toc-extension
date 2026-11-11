@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/quantai1314/gpt-toc-extension#readme",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=16.0.0"
   },
   "devDependencies": {},
   "dependencies": {}

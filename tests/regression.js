@@ -91,6 +91,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('chatgpt-toc-toggle').click();
       assert(headings().includes('Immediate refresh'), 'Open did not refresh');
     });
+    await check('Toolbar icon message toggles the outline like the page button', async () => {
+      // regression.html installs a stub chrome.runtime.onMessage before content.js boots.
+      const listeners = globalThis.__shigangMessageListeners || [];
+      assert(listeners.length === 1, `Expected one runtime message listener, found ${listeners.length}`);
+      const sidebar = document.getElementById('chatgpt-toc-sidebar');
+      const send = () => { let reply; listeners[0]({ type: 'shigang:toggle' }, {}, r => { reply = r; }); return reply; };
+      assert(sidebar.getAttribute('aria-hidden') === 'false', 'Outline should be open before the toolbar toggle');
+      assert(send().visible === false && sidebar.getAttribute('aria-hidden') === 'true', 'Toolbar message did not close the outline');
+      assert(send().visible === true && sidebar.getAttribute('aria-hidden') === 'false', 'Toolbar message did not reopen the outline');
+      listeners[0]({ type: 'unrelated' }, {}, () => assert(false, 'Unrelated messages must not be answered'));
+      assert(sidebar.getAttribute('aria-hidden') === 'false', 'Unrelated message changed the outline');
+    });
     await check('HTML-looking prompts and headings remain literal text', async () => {
       main.innerHTML = modern('&lt;img src=x&gt;', '&lt;b&gt;literal&lt;/b&gt; &amp; text');
       await waitFor(() => headings().includes('<b>literal</b> & text'));

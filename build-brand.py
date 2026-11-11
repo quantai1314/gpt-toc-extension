@@ -50,6 +50,4 @@ svg_parts.append('</svg>')
 for size in (16, 32, 48, 64, 128, 512):
     icon = master.resize((size, size), Image.Resampling.LANCZOS)
     icon.save(ROOT / "icons" / f"shigang-{size}.png")
-    if size <= 128:
-        icon.save(ROOT / "landing_page" / "assets" / f"shigang-{size}.png")
 print("Built Shigang SVG master and PNG icons: 16, 32, 48, 64, 128, 512")

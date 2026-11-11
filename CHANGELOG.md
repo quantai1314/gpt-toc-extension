@@ -2,6 +2,13 @@
 
 以下按实际工作日期记录修改，不代表 Chrome 商店发布记录。
 
+## 2026-11-11
+
+- 新增工具栏入口：点击浏览器工具栏的拾纲图标即可展开或收起当前 ChatGPT 页面的目录；在其他网站点击则新开 ChatGPT 标签页。由 `background.js` 通过 `action.onClicked` 向内容脚本发消息实现，未新增权限；打包时需把 `background.js` 加入文件白名单。新增 1 项回归检查，完整 72 项在无头 Chromium 中通过。
+- 移除介绍页：`landing_page/`、GitHub Pages 部署工作流和上游遗留的 `CNAME` 一并删除。该页面从未在本仓库成功部署（引用的 chatgpttoc.com 为上游域名），商店与 README 已包含完整说明，隐私政策链接一直指向仓库内 `PRIVACY.md`，不受影响。`build-brand.py` 不再输出介绍页图标。
+- 英文 README 手动安装步骤改为 1.0.4 安装包。
+- 新增 `.gitattributes` 统一为 LF 换行，并把工作区中 CRLF 的源码文件转为 LF，避免整文件 diff；`package.json` 的 `engines.node` 改为 `>=16`（构建脚本使用 `replaceAll`）。
+
 ## 2026-11-05
 
 - 将已验证的修复准备为 1.0.5 商店更新包，同步版本、中英文商店说明和审核测试备注。包完整性、文件白名单及源码一致性检查通过，权限未增加；商店提交结果见 CHROMEWEBSTORE.md 与 EDGEADDONS.md。

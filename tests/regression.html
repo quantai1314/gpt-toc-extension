@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>ChatGPT TOC regression tests</title>
-  <link rel="stylesheet" href="../styles.css?v=20261104-current">
+  <link rel="stylesheet" href="../styles.css?v=20261111-toolbar">
   <style>
     #results { max-height: 170px; overflow: auto; }
     main { width: min(600px, calc(100vw - 500px)); margin-left: 24px; }
@@ -13,8 +13,15 @@
   <h1>ChatGPT TOC regression tests</h1>
   <pre id="results">Running...</pre>
   <main></main>
+  <script>
+    // Minimal stand-in for the extension runtime so the toolbar-message path
+    // can be exercised without installing the extension. No i18n or storage
+    // is stubbed, so the bundled catalogs and in-page sizing remain under test.
+    globalThis.__shigangMessageListeners = [];
+    globalThis.chrome = { runtime: { onMessage: { addListener(listener) { globalThis.__shigangMessageListeners.push(listener); } } } };
+  </script>
   <script src="../localization.js?v=20261020-context"></script>
-  <script src="../content.js?v=20261104-current"></script>
-  <script src="regression.js?v=20261104-current"></script>
+  <script src="../content.js?v=20261111-toolbar"></script>
+  <script src="regression.js?v=20261111-toolbar"></script>
 </body>
 </html>
